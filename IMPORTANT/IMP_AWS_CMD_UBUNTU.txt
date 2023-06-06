@@ -1,0 +1,64 @@
+Last login: Sat Jun  3 20:01:24 2023 from 13.233.177.5
+ubuntu@ip-172-31-35-101:~$ ls
+ubuntu@ip-172-31-35-101:~$ sudo su
+
+
+root@ip-172-31-35-101:/home/ubuntu# cd /
+root@ip-172-31-35-101:/# cd var
+
+root@ip-172-31-35-101:/var# cd www
+root@ip-172-31-35-101:/var/www# cd html
+root@ip-172-31-35-101:/var/www/html# cd educatebharatbackend
+root@ip-172-31-35-101:/var/www/html/educatebharatbackend# cd EducateBharatBackend
+
+
+
+root@ip-172-31-35-101:/var/www/html/educatebharatbackend/EducateBharatBackend# mongo_URL=mongodb+srv://eb123:eb123@cluster0.fekmaxe.mongodb.net/  JWT_SECRET=3AdauJTABGyBS2bF8qFW2B9T PORT=5000  forever start --minUptime 1000 --spinSleepTime 1000 index.js
+info:    Forever processing file: index.js
+(node:4592) Warning: Accessing non-existent property 'padLevels' of module exports inside circular dependency
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:4592) Warning: Accessing non-existent property 'padLevels' of module exports inside circular dependency
+root@ip-172-31-35-101:/var/www/html/educatebharatbackend/EducateBharatBackend# sudo forever list
+(node:5005) Warning: Accessing non-existent property 'padLevels' of module exports inside circular dependency
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:5005) Warning: Accessing non-existent property 'padLevels' of module exports inside circular dependency
+info:    Forever processes running
+data:        uid  command       script   forever pid  id logfile                 uptime                    
+data:    [0] 9Spe /usr/bin/node index.js 4094    4101    /root/.forever/9Spe.log 0:0:20:30.914999999999964 
+data:    [1] zwD_ /usr/bin/node index.js 4603    4996    /root/.forever/zwD_.log 0:0:0:1.605               
+root@ip-172-31-35-101:/var/www/html/educatebharatbackend/EducateBharatBackend# forever stop 0
+(node:5174) Warning: Accessing non-existent property 'padLevels' of module exports inside circular dependency
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:5174) Warning: Accessing non-existent property 'padLevels' of module exports inside circular dependency
+info:    Forever stopped process:
+    uid  command       script   forever pid  id logfile                 uptime                    
+[0] 9Spe /usr/bin/node index.js 4094    4101    /root/.forever/9Spe.log 0:0:21:10.854000000000042 
+
+
+root@ip-172-31-35-101:/var/www/html/educatebharatbackend/EducateBharatBackend# forever stop 0
+(node:5193) Warning: Accessing non-existent property 'padLevels' of module exports inside circular dependency
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:5193) Warning: Accessing non-existent property 'padLevels' of module exports inside circular dependency
+info:    Forever stopped process:
+    uid  command       script   forever pid  id logfile                 uptime      
+[0] zwD_ /usr/bin/node index.js 4603    5181    /root/.forever/zwD_.log 0:0:0:6.394 
+
+root@ip-172-31-35-101:/var/www/html/educatebharatbackend/EducateBharatBackend# sudo forever list
+(node:5206) Warning: Accessing non-existent property 'padLevels' of module exports inside circular dependency
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:5206) Warning: Accessing non-existent property 'padLevels' of module exports inside circular dependency
+info:    No forever processes running
+
+root@ip-172-31-35-101:/var/www/html/educatebharatbackend/EducateBharatBackend# mongo_URL=mongodb+srv://eb123:eb123@cluster0.fekmaxe.mongodb.net/  JWT_SECRET=3AdauJTABGyBS2bF8qFW2B9T PORT=5000  forever start --minUptime 1000 --spinSleepTime 1000 index.js
+info:    Forever processing file: index.js
+(node:5218) Warning: Accessing non-existent property 'padLevels' of module exports inside circular dependency
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:5218) Warning: Accessing non-existent property 'padLevels' of module exports inside circular dependency
+root@ip-172-31-35-101:/var/www/html/educatebharatbackend/EducateBharatBackend# sudo forever list
+(node:5249) Warning: Accessing non-existent property 'padLevels' of module exports inside circular dependency
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:5249) Warning: Accessing non-existent property 'padLevels' of module exports inside circular dependency
+info:    Forever processes running
+data:        uid  command       script   forever pid  id logfile                 uptime      
+data:    [0] lQEC /usr/bin/node index.js 5229    5236    /root/.forever/lQEC.log 0:0:0:3.094 
+root@ip-172-31-35-101:/var/www/html/educatebharatbackend/EducateBharatBackend# 
