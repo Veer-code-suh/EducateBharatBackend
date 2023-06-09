@@ -31,11 +31,15 @@ const mediaRoutes = require('./ROUTES/mediaRoutes');
 const quizRoutes = require('./ROUTES/quizRoutes');
 const productRoutes = require('./ROUTES/productRoutes');
 const bannerRoutes = require('./ROUTES/bannerRoutes');
+const adminRoutes = require('./ROUTES/adminRoutes');
+const { uploadFile } = require("./ROUTES/s3");
 
+const multer = require('multer');
 // const subjectRoutes = require('./ROUTES/subjectRoutes');
 const bodyParser = require('body-parser');
 const cors = require('cors');
 require('./db');
+const upload = multer({ dest: 'uploads/' });
 
 
 
@@ -54,11 +58,25 @@ app.use(chapterRoutes)
 app.use(quizRoutes)
 app.use(productRoutes)
 app.use(bannerRoutes)
+app.use(adminRoutes)
 app.use("/api/v1/media", mediaRoutes);
 app.use("/public", express.static(path.join(__dirname, "public")));
 // app.use(subjectRoutes)
 
 
 
+
+
 app.get('/', (req, res) => res.send('Hello World!'));
+
+
+app.post('/uploadfiletos3', upload.single('file'), async (req, res) => {
+    const file = req.file; // Uploaded file object
+    // console.log(file);
+    let result = await uploadFile(file)
+    // Do something with the file (e.g., save it to a specific location, process it, etc.)
+
+    console.log(result);
+    res.json({ message: 'File uploaded successfully' });
+});
 app.listen(port, () => console.log(`Express app running on port ${port}!`));
