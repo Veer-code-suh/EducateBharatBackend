@@ -222,7 +222,7 @@ app.post('/submitQuiz', async (req, res) => {
     // total: thisQuiz.courseQuizQNA.length,
     // quizData : thisQuiz
 
-    const { quizId, quizType, score, total, quizData } = req.body;
+    const { quizId, quizType, score, total, quizData ,createdAt } = req.body;
     const token = req.headers.authorization.split(" ")[1];
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
@@ -231,7 +231,7 @@ app.post('/submitQuiz', async (req, res) => {
 
     //  find user
     User.findById(_id).then(user => {
-        user.testScores.push({ quizId, quizType, score, total, quizData });
+        user.testScores.push({ quizId, quizType, score, total, quizData ,createdAt});
         user.save().then(user => {
             res.json({ message: "success" }).status(200);
         }).catch(err => {
