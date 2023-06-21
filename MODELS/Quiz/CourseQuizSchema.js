@@ -29,6 +29,10 @@ const CourseQuiz = new mongoose.Schema({
     access: {
         type: String,
         default: 'PAID'
+    },
+    afterSubmissionPdf: {
+        type: String,
+        default: null
     }
 },
     {

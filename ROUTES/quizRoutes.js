@@ -16,7 +16,7 @@ const jwt = require('jsonwebtoken');
 // add quiz to chapter
 app.post('/createQuizForChapter', async (req, res) => {
     //chapterId, quizName
-    const { chapterId, chapterQuizName , access} = req.body;
+    const { chapterId, chapterQuizName, access } = req.body;
     const chapter = await Chapter.findById(chapterId);
 
     const newChapterQuiz = new ChapterQuiz({
@@ -27,7 +27,7 @@ app.post('/createQuizForChapter', async (req, res) => {
 
     const savedChapterQuiz = await newChapterQuiz.save();
 
-    chapter.chapterQuizzes.push({ chapterQuizName: savedChapterQuiz.chapterQuizName, _id: savedChapterQuiz._id , access: savedChapterQuiz.access});
+    chapter.chapterQuizzes.push({ chapterQuizName: savedChapterQuiz.chapterQuizName, _id: savedChapterQuiz._id, access: savedChapterQuiz.access });
 
     chapter.save().then(chapter => {
         res.json({ message: "success", chapter }).status(200);
@@ -38,7 +38,7 @@ app.post('/createQuizForChapter', async (req, res) => {
 });
 app.post('/createQuizForSubject', async (req, res) => {
     // same as above
-    const { subjectId, subjectQuizName , access} = req.body;
+    const { subjectId, subjectQuizName, access } = req.body;
     const subject = await Subject.findById(subjectId);
 
     const newSubjectQuiz = new SubjectQuiz({
@@ -51,7 +51,7 @@ app.post('/createQuizForSubject', async (req, res) => {
 
     // console.log(subject);
 
-    subject.subjectQuizzes.push({ subjectQuizName: savedSubjectQuiz.subjectQuizName, _id: savedSubjectQuiz._id , access: savedSubjectQuiz.access});
+    subject.subjectQuizzes.push({ subjectQuizName: savedSubjectQuiz.subjectQuizName, _id: savedSubjectQuiz._id, access: savedSubjectQuiz.access });
 
     subject.save().then(subject => {
         res.json({ message: "success", subject }).status(200);
@@ -233,7 +233,7 @@ app.post('/submitQuiz', async (req, res) => {
     User.findById(_id).then(user => {
         user.testScores.push({ quizId, quizType, score, total, quizData });
         user.save().then(user => {
-            res.json({ message: "success"}).status(200);
+            res.json({ message: "success" }).status(200);
         }).catch(err => {
             res.json({ error: "Error in finding user" }).status(500);
             console.log(err);
@@ -245,8 +245,54 @@ app.post('/submitQuiz', async (req, res) => {
 
 
 
-    });
+});
 
 
 
-    module.exports = app;
+
+app.post('/addAfterSubmissionPdfToQuiz', async (req, res) => {
+    const { quizId, quizType, pdfLink } = req.body;
+
+    if (quizType == "chapter") {
+        const quiz = await ChapterQuiz.findById(quizId);
+        quiz.afterSubmissionPdf = pdfLink;
+
+        quiz.save().then(quiz => {
+            res.json({ message: "success", quiz }).status(200);
+        }).catch(err => {
+            res.json({ error: "Error in adding pdf to quiz" }).status(500);
+            console.log(err);
+        });
+    }
+
+    else if (quizType == "subject") {
+        const quiz = await SubjectQuiz.findById(quizId);
+        quiz.afterSubmissionPdf = pdfLink;
+
+        quiz.save().then(quiz => {
+            res.json({ message: "success", quiz }).status(200);
+        }
+        ).catch(err => {
+            res.json({ error: "Error in adding pdf to quiz" }).status(500);
+            console.log(err);
+        }
+        );
+    }
+
+    else if (quizType == "fullquiz") {
+        const quiz = await CourseQuiz.findById(quizId);
+        quiz.afterSubmissionPdf = pdfLink;
+
+        quiz.save().then(quiz => {
+            res.json({ message: "success", quiz }).status(200);
+        }
+        ).catch(err => {
+            res.json({ error: "Error in adding pdf to quiz" }).status(500);
+            console.log(err);
+        }
+        );
+    }
+});
+
+
+module.exports = app;
