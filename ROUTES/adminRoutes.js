@@ -43,4 +43,23 @@ app.post('/adminLogin', async (req, res) => {
     }
 });
 
+app.post('/getUserDataforAdmin', async (req, res) => {
+    let token = req.headers.authorization.split(" ")[1];
+    const { userid} = req.body;
+
+    if (token) {
+        User.findOne({ _id: userid }, (err, user) => {
+            if (err) {
+                res.json({ message: "error" });
+            }
+            else {
+                res.json({ message: "success", user });
+            }
+        })
+    }
+    else {
+        res.json({ message: "Invalid Token" });
+    }
+});
+
 module.exports = app;
