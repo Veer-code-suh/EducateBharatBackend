@@ -53,7 +53,7 @@ app.post('/getUserDataforAdmin', async (req, res) => {
                 res.json({ message: "error" });
             }
             else {
-                res.json({ message: "success", user });
+                res.json({ message: "success", user : user });
             }
         })
     }
