@@ -18,7 +18,7 @@ app.post('/signup', async (req, res) => {
     if (!email || !password || !name || !age || !phone) {
         return res.status(422).json({ error: "Please add all the fields" })
     }
-    User.findOne({ email: email })
+    User.findOne({ phone: phone })
         .then((savedUser) => {
             if (savedUser) {
                 return res.status(422).json({ error: "User already exists with that email" })
@@ -46,16 +46,30 @@ app.post('/signup', async (req, res) => {
 
 });
 
+app.post('/checkuser', async (req, res) => {
+    const { phone } = req.body;
+
+    User.findOne({ phone: phone })
+        .then((savedUser) => {
+            if (savedUser) {
+                return res.json({ message: "User already exists with that phone" }).status(200);
+            }
+            else {
+                return res.json({ message: "User does not exists with that phone" }).status(200);
+            }
+        })    
+});
+
 app.post('/signin', async (req, res) => {
-    const { email, password } = req.body;
-    console.log(email, password);
-    if (!email || !password) {
-        return res.status(422).json({ error: "Please add email and password" })
+    const { phone, password } = req.body;
+    console.log(phone, password);
+    if (!phone || !password) {
+        return res.status(422).json({ error: "Please add phone and password" })
     }
-    User.findOne({ email: email })
+    User.findOne({ phone: phone })
         .then(savedUser => {
             if (!savedUser) {
-                return res.status(422).json({ error: "Invalid email or password" })
+                return res.status(422).json({ error: "Invalid phone or password" })
             }
             // console.log(savedUser + "  " + password);
             bcrypt.compare(password, savedUser.password)
