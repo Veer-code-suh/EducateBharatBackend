@@ -38,7 +38,6 @@ const { uploadFile } = require("./ROUTES/s3");
 // const subjectRoutes = require('./ROUTES/subjectRoutes');
 const bodyParser = require('body-parser');
 const cors = require('cors');
-const fast2sms = require('fast-two-sms');
 
 require('./db');
 
