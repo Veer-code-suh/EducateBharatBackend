@@ -48,12 +48,13 @@ app.post('/getUserDataforAdmin', async (req, res) => {
     const { userid} = req.body;
 
     if (token) {
-        User.findOne({ _id: userid }, (err, user) => {
-            if (err) {
-                res.json({ message: "error" });
-            }
-            else {
+        User.findOne({ _id: userid })
+        .then(user => {
+            if(user){
                 res.json({ message: "success", user : user });
+            }
+            else{
+                res.json({ message: "Invalid Token" });
             }
         })
     }
