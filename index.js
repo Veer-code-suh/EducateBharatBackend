@@ -38,6 +38,8 @@ const { uploadFile } = require("./ROUTES/s3");
 // const subjectRoutes = require('./ROUTES/subjectRoutes');
 const bodyParser = require('body-parser');
 const cors = require('cors');
+const fast2sms = require('fast-two-sms');
+
 require('./db');
 
 
@@ -57,6 +59,7 @@ app.use(chapterRoutes)
 app.use(quizRoutes)
 app.use(productRoutes)
 app.use(bannerRoutes)
+
 app.use(adminRoutes)
 // app.use("/api/v1/media", mediaRoutes);
 app.use("/public", express.static(path.join(__dirname, "public")));
@@ -67,6 +70,28 @@ app.use("/public", express.static(path.join(__dirname, "public")));
 
 
 app.get('/', (req, res) => res.send('Hello World!'));
+
+app.post('/sendotp', async (req, res) => {
+    const { phone } = req.body;
+    const otp = Math.floor(1000 + Math.random() * 9000);
+    const apiKey = process.env.FAST2SMS_API_KEY
+    let url = `https://www.fast2sms.com/dev/bulkV2?authorization=${apiKey}&variables_values=${otp}&route=otp&numbers=${phone}`
+
+    fetch(url, {
+        method: 'GET'
+    })
+        .then(response => response.json())
+        .then(data => {
+            console.log(data)
+            res.status(200).json({ data, otp })
+        })
+        .catch(error => console.error(error));
+
+});
+
+
+
+
 
 
 app.listen(port, () => console.log(`Express app running on port ${port}!`));
