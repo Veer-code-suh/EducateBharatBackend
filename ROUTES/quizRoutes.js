@@ -294,5 +294,45 @@ app.post('/addAfterSubmissionPdfToQuiz', async (req, res) => {
     }
 });
 
+app.post('/updateTimeLimit', async (req, res) => {
+    const { quizId, quizType, timeLimit } = req.body;
+
+    if (quizType == "chapter") {
+        const quiz = await ChapterQuiz.findById(quizId);
+        quiz.timeLimit = timeLimit;
+        quiz.save().then(quiz => {
+            res.json({ message: "success", quiz }).status(200);
+        }).catch(err => {
+            res.json({ error: "Error in adding timeLimit to quiz" }).status(500);
+            console.log(err);
+        });
+    }
+    else if (quizType == "subject") {
+        const quiz = await SubjectQuiz.findById(quizId);
+        quiz.timeLimit = timeLimit;
+
+        quiz.save().then(quiz => {
+            res.json({ message: "success", quiz }).status(200);
+        }
+        ).catch(err => {
+            res.json({ error: "Error in adding timeLimit to quiz" }).status(500);
+            console.log(err);
+        }
+        );
+    }
+    else if (quizType == "fullquiz") {
+        const quiz = await CourseQuiz.findById(quizId);
+        quiz.timeLimit = timeLimit;
+
+        quiz.save().then(quiz => {
+            res.json({ message: "success", quiz }).status(200);
+        }
+        ).catch(err => {
+            res.json({ error: "Error in adding timeLimit to quiz" }).status(500);
+            console.log(err);
+        }
+        );
+    }
+})
 
 module.exports = app;
