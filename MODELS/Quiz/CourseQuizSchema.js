@@ -33,6 +33,11 @@ const CourseQuiz = new mongoose.Schema({
     afterSubmissionPdf: {
         type: String,
         default: null
+    },
+    timeLimit: {
+        type: Number,
+        default: 60000
+        // 60000 ms = 1 minute
     }
 },
     {

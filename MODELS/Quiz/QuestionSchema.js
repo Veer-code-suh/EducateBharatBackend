@@ -40,6 +40,11 @@ const QuestionSchema = new mongoose.Schema({
     questionSubject: {
         type: String,
         required: true
+    },
+    timeLimit: {
+        type: Number,
+        default: 60000
+        // 60000 ms = 1 minute
     }
 },
     {
