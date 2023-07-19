@@ -18,6 +18,10 @@ const Purchase = new mongoose.Schema({
     currency : {
         type: String,
         default: 'INR'
+    },
+    razorpay_payment_id : {
+        type: String,
+        required: true
     }
 },{
     timestamps: true

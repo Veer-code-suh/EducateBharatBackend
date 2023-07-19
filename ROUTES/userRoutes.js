@@ -170,7 +170,7 @@ app.get('/latestusers', (req, res) => {
 // BUY COURSE
 app.post('/buyCourse', (req, res) => {
     const token = req.headers.authorization.split(" ")[1];
-    const { courseId, amount, currency } = req.body;
+    const { courseId, amount, currency, razorpay_payment_id } = req.body;
     if (!courseId || !token) {
         return res.status(422).json({ error: "Please add all the fields" });
     }
@@ -193,6 +193,7 @@ app.post('/buyCourse', (req, res) => {
                                 userId: savedUser._id,
                                 amount: amount,
                                 currency: currency,
+                                razorpay_payment_id: razorpay_payment_id
                             });
 
                             purchase.save()
