@@ -7,6 +7,5 @@ mongoose.connect(process.env.MONGO_URL).then(
         console.log('Connected to database');
     }
 ).catch((err) => {
-    console.log(process.env.AWS_SECRET_ACCESS_KEY)
     console.log('Error connecting to database ' + err);
 })
