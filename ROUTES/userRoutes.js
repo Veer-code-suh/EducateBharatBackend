@@ -217,6 +217,42 @@ app.post('/buyCourse', (req, res) => {
     }
 
 });
+app.post('/buyCourseWhatsapp', (req, res) => {
+    const {userId , courseId , transactionId , amount , currency} = req.body;
+
+    User.findOne({ _id: userId })
+        .then(async savedUser => {
+            if (savedUser) {
+                // console.log(savedUser);
+                savedUser.coursePurchased.push(courseId);
+                savedUser.save()
+                    .then(async user => {
+
+                        const purchase = new Purchase({
+                            item: {
+                                type: 'course',
+                                courseId: courseId
+                            },
+                            userId: user._id,
+                            amount: amount,
+                            currency: currency,
+                            upi_transaction_id : transactionId,
+                        });
+
+                        await purchase.save();
+                        res.json({ message: "Course Bought Successfully" });
+                    })
+                    .catch(err => {
+                        // console.log(err);
+                        return res.status(422).json({ error: "Server Error" });
+
+                    })
+            }
+            else {
+                return res.status(422).json({ error: "Invalid Credentials" });
+            }
+        })
+});
 
 // add to cart
 app.post('/addToCart', (req, res) => {

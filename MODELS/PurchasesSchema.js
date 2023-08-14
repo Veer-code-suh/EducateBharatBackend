@@ -21,7 +21,9 @@ const Purchase = new mongoose.Schema({
     },
     razorpay_payment_id : {
         type: String,
-        required: true
+    },
+    upi_transaction_id : {
+        type: String,
     }
 },{
     timestamps: true
