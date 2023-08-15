@@ -45,7 +45,37 @@ app.post('/signup', async (req, res) => {
         })
 
 });
+app.post('/forgotpassword', async (req, res) => {
+    const {phone , newpassword} = req.body;
 
+    if (!phone || !newpassword) {
+        res.json({ error: "Please add all the fields" }).status(422);
+    }
+    else {
+        User.findOne({ phone: phone })
+            .then(async savedUser => {
+                if (savedUser) {
+                    // console.log(savedUser);
+                    savedUser.password = newpassword;
+                    savedUser.save()
+                        .then(user => {
+                            res.json({ message: "Password Changed Successfully" }).status(200);
+                        })
+                        .catch(err => {
+                            // console.log(err);
+                            res.json({ error: "Server Error" }).status(500);
+                        })
+                }
+                else {
+                    res.json({ error: "Invalid Credentials" }).status(422);
+                }
+            })
+            .catch(err => {
+                console.log(err);
+                res.json({ error: "Error in finding user" }).status(500);
+            })
+    }
+});
 app.post('/checkuser', async (req, res) => {
     const { phone } = req.body;
 
