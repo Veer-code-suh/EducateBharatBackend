@@ -46,12 +46,14 @@ app.post('/signup', async (req, res) => {
 
 });
 app.post('/forgotpassword', async (req, res) => {
+    
     const {phone , newpassword} = req.body;
-
+    console.log('Forgot Password ', phone, newpassword);
     if (!phone || !newpassword) {
         res.json({ error: "Please add all the fields" }).status(422);
     }
     else {
+        
         User.findOne({ phone: phone })
             .then(async savedUser => {
                 if (savedUser) {
@@ -59,10 +61,11 @@ app.post('/forgotpassword', async (req, res) => {
                     savedUser.password = newpassword;
                     savedUser.save()
                         .then(user => {
+                            console.log('Password Changed Successfully');
                             res.json({ message: "Password Changed Successfully" }).status(200);
                         })
                         .catch(err => {
-                            // console.log(err);
+                            console.log(err);
                             res.json({ error: "Server Error" }).status(500);
                         })
                 }
