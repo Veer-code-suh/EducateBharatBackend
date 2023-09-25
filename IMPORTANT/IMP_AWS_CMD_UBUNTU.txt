@@ -1,3 +1,17 @@
+viraj@LAPTOP-3KEGAUDJ MINGW64 /d/EducateBharat/EducateBharatBackend/IMPORTANT (main)
+$ chmod 400 educatebharat200723.pem
+
+viraj@LAPTOP-3KEGAUDJ MINGW64 /d/EducateBharat/EducateBharatBackend/IMPORTANT (main)
+$ ec2-35-154-194-135.ap-south-1.compute.amazonaws.com
+bash: ec2-35-154-194-135.ap-south-1.compute.amazonaws.com: command not found
+
+viraj@LAPTOP-3KEGAUDJ MINGW64 /d/EducateBharat/EducateBharatBackend/IMPORTANT (main)
+$ ssh -i "educatebharat200723.pem" ubuntu@ec2-35-154-194-135.ap-south-1.compute.amazonaws.com
+Welcome to Ubuntu 22.04.2 LTS (GNU/Linux 5.19.0-1025-aws x86_64)
+.....
+......
+
+
 Last login: Sat Jun  3 20:01:24 2023 from 13.233.177.5
 ubuntu@ip-172-31-35-101:~$ ls
 ubuntu@ip-172-31-35-101:~$ sudo su
