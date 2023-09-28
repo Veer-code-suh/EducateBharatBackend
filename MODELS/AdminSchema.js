@@ -17,13 +17,13 @@ const Admin = new mongoose.Schema({
     });
 
 Admin.pre('save', async function (next) {
-    const Admin = this;
-    console.log("Just before saving before hashing  ", Admin.otp);
-    if (!Admin.isModified('otp')) {
+    const admin = this;
+    console.log("Just before saving before hashing  ", admin.otp);
+    if (!admin.isModified('otp')) {
         return next();
     }
-    Admin.otp = await bcrypt.hash(Admin.otp, 8);
-    console.log("Just before saving after hashing  ", Admin.otp);
+    admin.otp = await bcrypt.hash(admin.otp, 8);
+    console.log("Just before saving after hashing  ", admin.otp);
     next();
 })
 
