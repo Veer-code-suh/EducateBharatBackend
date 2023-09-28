@@ -8,6 +8,7 @@ const port = process.env.PORT || 4000;
 
 // SCHEMAS
 require('./MODELS/UserSchema');
+require('./MODELS/AdminSchema');
 require('./MODELS/CourseSchema');
 require('./MODELS/SubjectSchema');
 require('./MODELS/ChapterSchema');
