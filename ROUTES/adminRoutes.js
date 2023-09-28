@@ -13,6 +13,13 @@ const nodemailer = require('nodemailer');
 const adminTokenHandler = require('../Middleware/AdminVerificationMiddleware');
 
 
+const createResponse = (success, message, data = null) => {
+    return {
+        success,
+        message,
+        data
+    }
+}
 // const verifyToken = async (req, res, next) => {
 //     let token = req.headers.authorization.split(" ")[1];
 //     if (token) {
@@ -36,7 +43,7 @@ const transporter = nodemailer.createTransport({
     service: 'gmail',
     auth: {
         user: 'educatebharat23122001@gmail.com',
-        pass: 'qijvhmwyxgsyfulg'
+        pass: 'gufcbgmlypolpesq'
     }
 })
 

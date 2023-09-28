@@ -1,5 +1,7 @@
 const jwt = require('jsonwebtoken');
-const Admin = require('../MODELS/AdminSchema');
+const mongoose = require('mongoose');
+
+const Admin = mongoose.model('Admin');
 
 
 async function checkAdminToken(req, res, next) {
