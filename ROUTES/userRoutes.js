@@ -80,11 +80,16 @@ app.post('/forgotpassword', async (req, res) => {
     }
 });
 app.post('/checkuser', async (req, res) => {
+    console.log('signup api')
+
     const { phone } = req.body;
 
     User.findOne({ phone: phone })
         .then((savedUser) => {
+            console.log(savedUser);
             if (savedUser) {
+
+               
                 return res.json({ message: "User already exists with that phone" }).status(200);
             }
             else {
