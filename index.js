@@ -75,9 +75,9 @@ app.post('/sendotp', async (req, res) => {
     const { phone } = req.body;
     const otp = Math.floor(1000 + Math.random() * 9000);
     const apiKey = process.env.FAST2SMS_API_KEY
-    let url = `https://www.fast2sms.com/dev/bulkV2?authorization=${apiKey}&route=otp&variables_values=${otp}&flash=0&numbers=${phone}`
+    let url = `https://www.fast2sms.com/dev/bulkV2?authorization=KEHL1KxvTIz332qCcF9EpaGNlLB1fkfk0rtE2idhjDYJGKb5rJPGLbzBFYo7&route=otp&variables_values=${otp}&flash=0&numbers=${phone}`
 
-    console.log(url)
+    // console.log(url)
 
     fetch(url, {
         method: 'GET'
