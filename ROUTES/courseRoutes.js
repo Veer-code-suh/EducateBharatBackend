@@ -44,6 +44,43 @@ app.get('/allCourses', async (req, res) => {
     const courses = await Course.find();
     res.json({ courses }).status(200);
 });
+app.post('/getSomeCourses', async (req, res) => {
+    const { limit } = req.body;
+
+    try {
+        const courses = await Course.find()
+            .sort({ createdAt: -1 }) // Sort by creation date in descending order
+            .limit(limit)             // Limit the number of results
+            .select('courseName coursePrice courseDescription courseImage'); // Select specific fields
+
+        res.status(200).json({ courses });
+    } catch (error) {
+        console.error("Error fetching courses:", error);
+        res.status(500).json({ error: "Failed to fetch courses" });
+    }
+});
+app.post('/searchCourses', async (req, res) => {
+    const { query } = req.body;
+    try {
+        const courses = await Course.find({
+            courseName: { $regex: query, $options: 'i' }
+        })
+            .limit(3)
+            .select('courseName coursePrice courseDescription courseImage'); // Select specific fields
+
+        res.status(200).json({ courses });
+    } catch (error) {
+        console.error("Error searching courses:", error);
+        res.status(500).json({ error: "Failed to search courses" });
+    }
+});
+
+app.post('/courseintrobycourseid', async (req, res) => {
+    const { courseId } = req.body;
+    const course = await Course.findById(courseId).select('-courseQuizzes');
+    res.json({ course, message: 'success' }).status(200);
+});
+
 app.post('/coursebycourseid', async (req, res) => {
     const { courseId } = req.body;
     const course = await Course.findById(courseId);
@@ -138,11 +175,10 @@ app.post('/addChapterToSubject', async (req, res) => {
 
 });
 
-app.post('/getChaptersBySubjectId', async (req, res) => {
+app.post('/getChaptersAndQuizesBySubjectId', async (req, res) => {
     const { subjectId } = req.body;
-    console.log(subjectId);
     const subject = await Subject.findById(subjectId);
-    res.json({ subject , message: "success"}).status(200);
+    res.json({ subject, message: "success" }).status(200);
 
 });
 
@@ -153,7 +189,7 @@ app.post('/deleteChapterFromSubject', async (req, res) => {
 
     const subject = await Subject.findById(subjectId);
     const updatedChapters = subject.subjectChapters.filter(chapter => chapter._id != chapterId);
-    
+
     subject.subjectChapters = updatedChapters;
 
     subject.save().then(subject => {

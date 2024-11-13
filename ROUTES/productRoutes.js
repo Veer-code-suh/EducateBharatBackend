@@ -89,4 +89,20 @@ app.post('/getSomeProducts' , async (req, res) => {
     }
 });
 
+
+// Search Store Products API
+app.post('/searchStoreProducts', async (req, res) => {
+    const { query } = req.body;
+    try {
+        const products = await Product.find({
+            productName: { $regex: query, $options: 'i' }
+        }).limit(3);  // Limit to a maximum of 3 products
+
+        res.status(200).json({ products });
+    } catch (error) {
+        console.error("Error searching products:", error);
+        res.status(500).json({ error: "Failed to search products" });
+    }
+});
+
 module.exports = app;

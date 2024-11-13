@@ -7,7 +7,7 @@ const Chapter = mongoose.model('Chapter');
 const ChapterQuiz = mongoose.model('ChapterQuiz');
 const SubjectQuiz = mongoose.model('SubjectQuiz');
 const CourseQuiz = mongoose.model('CourseQuiz');
-const QuestionSchema = mongoose.model('QuestionSchema');
+const Question = mongoose.model('Question');
 const User = mongoose.model('User');
 
 const bcrypt = require("bcrypt");
@@ -94,57 +94,57 @@ app.post('/createQuizForCourse', async (req, res) => {
 
 
 // add question to quiz
-// {
-// question , type , options , answer , marks , negativeMarks
-// }
 app.post('/addQuestionToQuiz', async (req, res) => {
+    const { questionName, questionType, quizType, quizId, questionOptions, questionAnswer, questionMarks, questionNegativeMarks, questionSubject, questionPdf } = req.body;
 
-    const { questionName, questionType, quizType, quizId, questionOptions, questionAnswer, questionMarks, questionNegativeMarks, questionSubject } = req.body;
-
-    if (quizType == "chapter") {
-        const quiz = await ChapterQuiz.findById(quizId);
-
-        quiz.chapterQuizQNA.push(req.body);
-
-        quiz.save().then(quiz => {
-            res.json({ message: "success", quiz }).status(200);
-        }).catch(err => {
-            res.json({ error: "Error in adding question to quiz" }).status(500);
-            console.log(err);
+    try {
+        // First, create and save the question to the questions collection
+        const newQuestion = new Question({
+            questionName,
+            questionType,
+            quizType,
+            quizId,
+            questionOptions,
+            questionAnswer,
+            questionMarks,
+            questionNegativeMarks,
+            questionSubject,
+            questionPdf,
         });
-    }
-    else if (quizType == "subject") {
-        // same as above
-        const quiz = await SubjectQuiz.findById(quizId);
 
+        const savedQuestion = await newQuestion.save();
 
-        quiz.subjectQuizQNA.push(req.body);
+        // Now, add the saved question's ID to the respective quiz's question array
+        if (quizType === "chapter") {
+            const quiz = await ChapterQuiz.findById(quizId);
+            if (!quiz) return res.status(404).json({ error: "Chapter quiz not found" });
 
-        quiz.save().then(quiz => {
-            res.json({ message: "success", quiz }).status(200);
+            quiz.chapterQuizQNA.push(savedQuestion._id);
+            await quiz.save();
+            return res.status(200).json({ message: "Question added to chapter quiz", quiz });
         }
-        ).catch(err => {
-            res.json({ error: "Error in adding question to quiz" }).status(500);
-            console.log(err);
+        else if (quizType === "subject") {
+            const quiz = await SubjectQuiz.findById(quizId);
+            if (!quiz) return res.status(404).json({ error: "Subject quiz not found" });
+
+            quiz.subjectQuizQNA.push(savedQuestion._id);
+            await quiz.save();
+            return res.status(200).json({ message: "Question added to subject quiz", quiz });
         }
-        );
+        else if (quizType === "fullquiz") {
+            const quiz = await CourseQuiz.findById(quizId);
+            if (!quiz) return res.status(404).json({ error: "Full course quiz not found" });
 
-    }
-    else if (quizType == "fullquiz") {
-        // same as above
-        const quiz = await CourseQuiz.findById(quizId);
-
-        quiz.courseQuizQNA.push(req.body);
-
-        quiz.save().then(quiz => {
-            res.json({ message: "success", quiz }).status(200);
+            quiz.courseQuizQNA.push(savedQuestion._id);
+            await quiz.save();
+            return res.status(200).json({ message: "Question added to full course quiz", quiz });
         }
-        ).catch(err => {
-            res.json({ error: "Error in adding question to quiz" }).status(500);
-            console.log(err);
+        else {
+            return res.status(400).json({ error: "Invalid quiz type" });
         }
-        );
-
+    } catch (error) {
+        console.error("Error in adding question to quiz:", error);
+        return res.status(500).json({ error: "Error in adding question to quiz" });
     }
 });
 app.post('/getQuizData', async (req, res) => {
@@ -165,55 +165,79 @@ app.post('/getQuizData', async (req, res) => {
     }
 
 });
-app.post('/deleteQuestion', async (req, res) => {
-    const { quizId, quizType, questionName } = req.body;
 
-    if (quizType == "chapter") {
-        const quiz = await ChapterQuiz.findById(quizId);
-        quiz.chapterQuizQNA = quiz.chapterQuizQNA.filter((question) => {
-            return question.questionName != questionName;
-        }
-        );
-        quiz.save().then(quiz => {
-            res.json({ message: "success", quiz }).status(200);
-        }).catch(err => {
-            res.json({ error: "Error in deleting question from quiz" }).status(500);
-            console.log(err);
-        });
-    }
-    else if (quizType == "subject") {
-        const quiz = await SubjectQuiz.findById(quizId);
-        quiz.subjectQuizQNA = quiz.subjectQuizQNA.filter((question) => {
-            return question.questionName != questionName;
-        }
-        );
-        quiz.save().then(quiz => {
-            res.json({ message: "success", quiz }).status(200);
-        }
-        ).catch(err => {
-            res.json({ error: "Error in deleting question from quiz" }).status(500);
-            console.log(err);
-        }
-        );
+app.post('/getQuizStartData', async (req, res) => {
+    const { quizId, quizType } = req.body;
 
-    }
-    else if (quizType == "fullquiz") {
-        const quiz = await CourseQuiz.findById(quizId);
-        quiz.courseQuizQNA = quiz.courseQuizQNA.filter((question) => {
-            return question.questionName != questionName;
+    try {
+        let quiz;
+        if (quizType === "chapter") {
+            // Exclude chapterQuizQNA field from the result
+            quiz = await ChapterQuiz.findById(quizId).select('-chapterQuizQNA');
+        } else if (quizType === "subject") {
+            // Exclude subjectQuizQNA field from the result
+            quiz = await SubjectQuiz.findById(quizId).select('-subjectQuizQNA');
+        } else if (quizType === "fullquiz") {
+            // Exclude courseQuizQNA field from the result
+            quiz = await CourseQuiz.findById(quizId).select('-courseQuizQNA');
+        } else {
+            return res.status(400).json({ error: "Invalid quiz type" });
         }
-        );
-        quiz.save().then(quiz => {
-            res.json({ message: "success", quiz }).status(200);
-        }
-        ).catch(err => {
-            res.json({ error: "Error in deleting question from quiz" }).status(500);
-            console.log(err);
-        }
-        );
-    }
 
+        if (!quiz) {
+            return res.status(404).json({ error: "Quiz not found" });
+        }
+
+        res.status(200).json({ message: "success", quiz });
+    } catch (error) {
+        console.error("Error fetching quiz:", error);
+        res.status(500).json({ error: "Error fetching quiz data" });
+    }
 });
+
+app.post('/deleteQuestion', async (req, res) => {
+    const { quizId, quizType, questionId } = req.body;
+
+    try {
+        // Step 1: Remove the question from the questions collection
+        await Question.findByIdAndDelete(questionId);
+
+        let quiz;
+        let quizField;
+
+        // Step 2: Find the quiz based on quizType and remove the questionId reference
+        if (quizType === "chapter") {
+            quiz = await ChapterQuiz.findById(quizId);
+            quizField = "chapterQuizQNA";
+        } else if (quizType === "subject") {
+            quiz = await SubjectQuiz.findById(quizId);
+            quizField = "subjectQuizQNA";
+        } else if (quizType === "fullquiz") {
+            quiz = await CourseQuiz.findById(quizId);
+            quizField = "courseQuizQNA";
+        } else {
+            return res.status(400).json({ error: "Invalid quiz type" });
+        }
+
+        if (!quiz) {
+            return res.status(404).json({ error: "Quiz not found" });
+        }
+
+        // Step 3: Filter out the question ID from the quiz's question array
+        quiz[quizField] = quiz[quizField].filter(
+            (qId) => qId.toString() !== questionId
+        );
+
+        // Save the updated quiz
+        await quiz.save();
+
+        res.status(200).json({ message: "Question deleted successfully", quiz });
+    } catch (err) {
+        console.error("Error deleting question:", err);
+        res.status(500).json({ error: "Error in deleting question from quiz" });
+    }
+});
+
 
 app.post('/submitQuiz', async (req, res) => {
     // quizId: thisQuiz._id,
@@ -222,7 +246,7 @@ app.post('/submitQuiz', async (req, res) => {
     // total: thisQuiz.courseQuizQNA.length,
     // quizData : thisQuiz
 
-    const { quizId, quizType, score, total, quizData ,createdAt } = req.body;
+    const { quizId, quizType, score, total, quizData, createdAt } = req.body;
     const token = req.headers.authorization.split(" ")[1];
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
@@ -231,7 +255,7 @@ app.post('/submitQuiz', async (req, res) => {
 
     //  find user
     User.findById(_id).then(user => {
-        user.testScores.push({ quizId, quizType, score, total, quizData ,createdAt});
+        user.testScores.push({ quizId, quizType, score, total, quizData, createdAt });
         user.save().then(user => {
             res.json({ message: "success" }).status(200);
         }).catch(err => {

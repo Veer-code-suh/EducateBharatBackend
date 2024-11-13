@@ -46,14 +46,14 @@ app.post('/signup', async (req, res) => {
 
 });
 app.post('/forgotpassword', async (req, res) => {
-    
-    const {phone , newpassword} = req.body;
+
+    const { phone, newpassword } = req.body;
     console.log('Forgot Password ', phone, newpassword);
     if (!phone || !newpassword) {
         res.json({ error: "Please add all the fields" }).status(422);
     }
     else {
-        
+
         User.findOne({ phone: phone })
             .then(async savedUser => {
                 if (savedUser) {
@@ -89,13 +89,13 @@ app.post('/checkuser', async (req, res) => {
             console.log(savedUser);
             if (savedUser) {
 
-               
+
                 return res.json({ message: "User already exists with that phone" }).status(200);
             }
             else {
                 return res.json({ message: "User does not exists with that phone" }).status(200);
             }
-        })    
+        })
 });
 
 app.post('/signin', async (req, res) => {
@@ -156,16 +156,15 @@ app.get('/getuserdatafromtoken', async (req, res) => {
     }
 });
 app.post('/resetpassword', (req, res) => {
-    const { newpassword } = req.body;
+    const { phone, newpassword } = req.body;
 
-    if (!newpassword) {
+    if (!phone || !newpassword) {
         return res.status(422).json({ error: "Please add all the fields" });
     }
     else {
-        const token = req.headers.authorization.split(" ")[1];
-        const data = jwt.verify(token, process.env.JWT_SECRET);
-        const { _id } = data;
-        User.findOne({ _id: _id })
+
+
+        User.findOne({ phone })
             .then(async savedUser => {
                 if (savedUser) {
                     // console.log(savedUser);
@@ -256,7 +255,7 @@ app.post('/buyCourse', (req, res) => {
 
 });
 app.post('/buyCourseWhatsapp', (req, res) => {
-    const {userId , courseId , transactionId , amount , currency} = req.body;
+    const { userId, courseId, transactionId, amount, currency } = req.body;
 
     User.findOne({ _id: userId })
         .then(async savedUser => {
@@ -274,7 +273,7 @@ app.post('/buyCourseWhatsapp', (req, res) => {
                             userId: user._id,
                             amount: amount,
                             currency: currency,
-                            upi_transaction_id : transactionId,
+                            upi_transaction_id: transactionId,
                         });
 
                         await purchase.save();
@@ -564,15 +563,16 @@ app.post('/cancelOrder', (req, res) => {
     const { _id } = data;
 
     const { orderId } = req.body;
-
     User.findOne({ _id: _id })
         .then(user => {
+     
             // check if order id is present in user orders
-            if (user.orders.includes(orderId)) {
+            if (user.orders.some(order => order.orderid.toString() === orderId.toString())) {
                 Order.findOne({ _id: orderId })
                     .then(order => {
+                       
                         // check if order is not delivered
-                        if (order.isDelivered === false) {
+                        if (order.isDelivered === 'Not Delivered') {
                             order.isCancelled = true;
                             order.save()
                                 .then(order => {
@@ -588,9 +588,14 @@ app.post('/cancelOrder', (req, res) => {
                                     });
                                 });
                         }
-                        if (order.isDelivered === true) {
+                        else if (order.isDelivered === 'Delivered') {
                             res.json({
                                 error: "Order Already Delivered"
+                            });
+                        }
+                        else{
+                            res.json({
+                                error: "Something went wrong"
                             });
                         }
                     })
@@ -697,7 +702,7 @@ app.post('/getOrderByIdAdmin', (req, res) => {
 });
 
 app.post('/updateOrderByIdAdmin', (req, res) => {
-    const { orderId ,order} = req.body;
+    const { orderId, order } = req.body;
 
     if (!order) {
         res.json({
@@ -708,8 +713,8 @@ app.post('/updateOrderByIdAdmin', (req, res) => {
     Order.findOne({ _id: orderId })
         .then(order => {
             // save order
-           order = Object.assign(order, req.body.order);
-              order.save()
+            order = Object.assign(order, req.body.order);
+            order.save()
                 .then(order => {
                     res.status(200).json({
                         order: order,
