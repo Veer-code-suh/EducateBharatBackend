@@ -121,7 +121,7 @@ app.post('/addQuestionToQuiz', async (req, res) => {
 
             quiz.chapterQuizQNA.push(savedQuestion._id);
             await quiz.save();
-            return res.status(200).json({ message: "Question added to chapter quiz", quiz });
+            return res.status(200).json({ message: "success", quiz });
         }
         else if (quizType === "subject") {
             const quiz = await SubjectQuiz.findById(quizId);
@@ -129,7 +129,7 @@ app.post('/addQuestionToQuiz', async (req, res) => {
 
             quiz.subjectQuizQNA.push(savedQuestion._id);
             await quiz.save();
-            return res.status(200).json({ message: "Question added to subject quiz", quiz });
+            return res.status(200).json({ message: "success", quiz });
         }
         else if (quizType === "fullquiz") {
             const quiz = await CourseQuiz.findById(quizId);
@@ -137,7 +137,7 @@ app.post('/addQuestionToQuiz', async (req, res) => {
 
             quiz.courseQuizQNA.push(savedQuestion._id);
             await quiz.save();
-            return res.status(200).json({ message: "Question added to full course quiz", quiz });
+            return res.status(200).json({ message: "success", quiz });
         }
         else {
             return res.status(400).json({ error: "Invalid quiz type" });
