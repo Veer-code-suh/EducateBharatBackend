@@ -14,10 +14,7 @@ const ChapterQuiz = new mongoose.Schema({
         type: String,
         default: 'noimage'
     },
-    chapterQuizQNA: {
-        type: Array,
-        default: []
-    },
+    chapterQuizQNA: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Question' }],
     chapterId: {
         type: String,
         required: true

@@ -195,6 +195,39 @@ app.post('/getQuizStartData', async (req, res) => {
     }
 });
 
+
+app.post('/getQuizQuestionsData', async (req, res) => {
+    const { quizId, quizType } = req.body;
+
+    try {
+        let quizQuestions;
+        let populateField;
+
+        if (quizType === "chapter") {
+            populateField = "chapterQuizQNA";
+            quizQuestions = await ChapterQuiz.findById(quizId).select(populateField).populate(populateField);
+        } else if (quizType === "subject") {
+            populateField = "subjectQuizQNA";
+            quizQuestions = await SubjectQuiz.findById(quizId).select(populateField).populate(populateField);
+        } else if (quizType === "fullquiz") {
+            populateField = "courseQuizQNA";
+            quizQuestions = await CourseQuiz.findById(quizId).select(populateField).populate(populateField);
+        } else {
+            return res.status(400).json({ error: "Invalid quiz type" });
+        }
+   
+        if (!quizQuestions) {
+            return res.status(404).json({ error: "Quiz not found" });
+        }
+
+        res.status(200).json({ message: "success", quizQuestions });
+    } catch (error) {
+        console.error("Error fetching quiz:", error);
+        res.status(500).json({ error: "Error fetching quiz data" });
+    }
+});
+
+
 app.post('/deleteQuestion', async (req, res) => {
     const { quizId, quizType, questionId } = req.body;
 

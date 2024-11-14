@@ -14,10 +14,7 @@ const CourseQuiz = new mongoose.Schema({
         type: String,
         default: 'noimage'
     },
-    courseQuizQNA: {
-        type: Array,
-        default: []
-    },
+    courseQuizQNA: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Question' }],
     courseId: {
         type: String,
         required: true

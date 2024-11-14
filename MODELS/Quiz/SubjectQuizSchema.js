@@ -14,10 +14,7 @@ const SubjectQuiz = new mongoose.Schema({
         type: String,
         default: 'noimage'
     },
-    subjectQuizQNA: {
-        type: Array,
-        default: []
-    },
+    subjectQuizQNA: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Question' }],
     subjectId: {
         type: String,
         required: true
