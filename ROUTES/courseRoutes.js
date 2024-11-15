@@ -77,7 +77,7 @@ app.post('/searchCourses', async (req, res) => {
 
 app.post('/courseintrobycourseid', async (req, res) => {
     const { courseId } = req.body;
-    const course = await Course.findById(courseId).select('-courseQuizzes');
+    const course = await Course.findById(courseId).select('-courseQuizzes -courseSubjects');
     res.json({ course, message: 'success' }).status(200);
 });
 
@@ -86,6 +86,13 @@ app.post('/coursebycourseid', async (req, res) => {
     const course = await Course.findById(courseId);
     res.json({ course, message: 'success' }).status(200);
 });
+
+app.post('/courseqnabycourseid', async (req, res) => {
+    const { courseId } = req.body;
+    const course = await Course.findById(courseId).select('courseQuizzes courseSubjects');
+    res.json({ course, message: 'success' }).status(200);
+});
+
 app.post('/saveEditedCourseById', async (req, res) => {
     const { _id, courseName, coursePrice, courseDescription, courseImage } = req.body;
     const course = await Course.findById(_id);

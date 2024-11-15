@@ -97,6 +97,7 @@ app.post('/createQuizForCourse', async (req, res) => {
 app.post('/addQuestionToQuiz', async (req, res) => {
     const { questionName, questionType, quizType, quizId, questionOptions, questionAnswer, questionMarks, questionNegativeMarks, questionSubject, questionPdf } = req.body;
 
+    // console.log({ questionName, questionType, quizType, quizId, questionOptions, questionAnswer, questionMarks, questionNegativeMarks, questionSubject, questionPdf })
     try {
         // First, create and save the question to the questions collection
         const newQuestion = new Question({
@@ -131,7 +132,7 @@ app.post('/addQuestionToQuiz', async (req, res) => {
             await quiz.save();
             return res.status(200).json({ message: "success", quiz });
         }
-        else if (quizType === "fullquiz") {
+        else if (quizType === "course") {
             const quiz = await CourseQuiz.findById(quizId);
             if (!quiz) return res.status(404).json({ error: "Full course quiz not found" });
 
@@ -158,7 +159,7 @@ app.post('/getQuizData', async (req, res) => {
         const quiz = await SubjectQuiz.findById(quizId);
         res.json({ message: "success", quiz }).status(200);
     }
-    else if (quizType == "fullquiz") {
+    else if (quizType == "course") {
         const quiz = await CourseQuiz.findById(quizId);
         console.log(quiz);
         res.json({ message: "success", quiz }).status(200);
@@ -177,7 +178,7 @@ app.post('/getQuizStartData', async (req, res) => {
         } else if (quizType === "subject") {
             // Exclude subjectQuizQNA field from the result
             quiz = await SubjectQuiz.findById(quizId).select('-subjectQuizQNA');
-        } else if (quizType === "fullquiz") {
+        } else if (quizType === "course") {
             // Exclude courseQuizQNA field from the result
             quiz = await CourseQuiz.findById(quizId).select('-courseQuizQNA');
         } else {
@@ -209,7 +210,7 @@ app.post('/getQuizQuestionsData', async (req, res) => {
         } else if (quizType === "subject") {
             populateField = "subjectQuizQNA";
             quizQuestions = await SubjectQuiz.findById(quizId).select(populateField).populate(populateField);
-        } else if (quizType === "fullquiz") {
+        } else if (quizType === "course") {
             populateField = "courseQuizQNA";
             quizQuestions = await CourseQuiz.findById(quizId).select(populateField).populate(populateField);
         } else {
@@ -245,7 +246,7 @@ app.post('/deleteQuestion', async (req, res) => {
         } else if (quizType === "subject") {
             quiz = await SubjectQuiz.findById(quizId);
             quizField = "subjectQuizQNA";
-        } else if (quizType === "fullquiz") {
+        } else if (quizType === "course") {
             quiz = await CourseQuiz.findById(quizId);
             quizField = "courseQuizQNA";
         } else {
@@ -336,7 +337,7 @@ app.post('/addAfterSubmissionPdfToQuiz', async (req, res) => {
         );
     }
 
-    else if (quizType == "fullquiz") {
+    else if (quizType == "course") {
         const quiz = await CourseQuiz.findById(quizId);
         quiz.afterSubmissionPdf = pdfLink;
 
@@ -377,7 +378,7 @@ app.post('/updateTimeLimit', async (req, res) => {
         }
         );
     }
-    else if (quizType == "fullquiz") {
+    else if (quizType == "course") {
         const quiz = await CourseQuiz.findById(quizId);
         quiz.timeLimit = timeLimit;
 
