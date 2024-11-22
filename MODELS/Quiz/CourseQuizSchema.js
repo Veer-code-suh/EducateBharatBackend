@@ -21,7 +21,7 @@ const CourseQuiz = new mongoose.Schema({
     },
     quizType: {
         type: String,
-        default: 'chapter'
+        default: 'course'
     },
     access: {
         type: String,

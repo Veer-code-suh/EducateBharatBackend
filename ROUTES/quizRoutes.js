@@ -96,7 +96,8 @@ app.post('/createQuizForCourse', async (req, res) => {
 // add question to quiz
 app.post('/addQuestionToQuiz', async (req, res) => {
     const { questionName, questionType, quizType, quizId, questionOptions, questionAnswer, questionMarks, questionNegativeMarks, questionSubject, questionPdf } = req.body;
-
+    // console.log(req.body);
+    // return res.status(200).json({ message: "success", quiz:{} });
     // console.log({ questionName, questionType, quizType, quizId, questionOptions, questionAnswer, questionMarks, questionNegativeMarks, questionSubject, questionPdf })
     try {
         // First, create and save the question to the questions collection
@@ -114,6 +115,7 @@ app.post('/addQuestionToQuiz', async (req, res) => {
         });
 
         const savedQuestion = await newQuestion.save();
+        
 
         // Now, add the saved question's ID to the respective quiz's question array
         if (quizType === "chapter") {
@@ -216,7 +218,7 @@ app.post('/getQuizQuestionsData', async (req, res) => {
         } else {
             return res.status(400).json({ error: "Invalid quiz type" });
         }
-   
+
         if (!quizQuestions) {
             return res.status(404).json({ error: "Quiz not found" });
         }
@@ -280,7 +282,7 @@ app.post('/submitQuiz', async (req, res) => {
     // total: thisQuiz.courseQuizQNA.length,
     // quizData : thisQuiz
 
-    const { quizId, quizType, score, total, quizData, createdAt } = req.body;
+    const { quizId, quizType, score, total,  createdAt, userAnswers } = req.body;
     const token = req.headers.authorization.split(" ")[1];
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
@@ -289,7 +291,7 @@ app.post('/submitQuiz', async (req, res) => {
 
     //  find user
     User.findById(_id).then(user => {
-        user.testScores.push({ quizId, quizType, score, total, quizData, createdAt });
+        user.testScores.push({ quizId, quizType, score, total,  createdAt, userAnswers });
         user.save().then(user => {
             res.json({ message: "success" }).status(200);
         }).catch(err => {

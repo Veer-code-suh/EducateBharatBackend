@@ -5,6 +5,9 @@ const User = mongoose.model('User');
 const Order = mongoose.model('Order');
 const Purchase = mongoose.model('Purchase');
 const Course = mongoose.model('Course');
+const ChapterQuiz = mongoose.model('ChapterQuiz');
+const SubjectQuiz = mongoose.model('SubjectQuiz');
+const CourseQuiz = mongoose.model('CourseQuiz');
 const bcrypt = require("bcrypt");
 const jwt = require('jsonwebtoken');
 const { v4: uuidv4 } = require('uuid');
@@ -130,31 +133,200 @@ app.post('/signin', async (req, res) => {
 });
 
 app.get('/getuserdatafromtoken', async (req, res) => {
-    // console.log('inside user token route ',process.env.JWT_SECRET)
-    const token = req.headers.authorization.split(" ")[1];
-    if (token == "null") {
-        console.log("invalid token")
-        res.json({
-            error: "Invalid Token"
-        })
+    const token = req.headers.authorization?.split(" ")[1];
+    if (!token || token === "null") {
+        console.log("Invalid token");
+        return res.status(401).json({ error: "Invalid Token" });
     }
-    else {
-        const token = req.headers.authorization.split(" ")[1];
+
+    try {
         const data = jwt.verify(token, process.env.JWT_SECRET);
-        // console.log('data from token ', data)
-        User.findOne({ _id: data._id })
-            .then(user => {
-                user.password = undefined;
-                // console.log('user data from token ', user)
-                res.status(200).json({
-                    userdata: user
-                });
-            })
-            .catch(err => {
-                console.log('err getting user data from token ', err)
-            })
+
+        // Find the user and exclude the 'quizzes' field from the response
+        const user = await User.findOne({ _id: data._id }, { testScores: 0, password: 0 }).lean();
+
+        if (!user) {
+            return res.status(404).json({ error: "User not found" });
+        }
+
+        res.status(200).json({ userdata: user });
+    } catch (err) {
+        console.error("Error fetching user data:", err);
+        res.status(500).json({ error: "Internal server error" });
     }
 });
+
+app.get('/getuserquizzes', async (req, res) => {
+    const token = req.headers.authorization?.split(" ")[1];
+    const { date } = req.query; // Get the date from query parameters
+    if (!token || token === "null") {
+        console.log("Invalid token");
+        return res.status(401).json({ error: "Invalid Token" });
+    }
+
+    try {
+        const data = jwt.verify(token, process.env.JWT_SECRET);
+        const user = await User.findOne({ _id: data._id }).lean();
+
+        if (!user) {
+            return res.status(404).json({ error: "User not found" });
+        }
+
+        // Fetch detailed quiz data
+        let quizzes = await Promise.all(user.testScores.map(async (quiz) => {
+            const { quizId, quizType } = quiz;
+
+            // Fetch quiz data from /getQuizData API
+            let quizName = null;
+            try {
+
+                if (quizType === "chapter") {
+                    quizName = await ChapterQuiz.findById(quizId).select('chapterQuizName');
+                    quizName = quizName.chapterQuizName;
+                } else if (quizType === "subject") {
+                    quizName = await SubjectQuiz.findById(quizId).select('subjectQuizName');
+                    quizName = quizName.subjectQuizName;
+
+                } else if (quizType === "course") {
+                    quizName = await CourseQuiz.findById(quizId).select('courseQuizName');
+                    quizName = quizName.courseQuizName;
+
+                }
+
+            } catch (err) {
+                console.error(`Failed to fetch quiz data for quizId: ${quizId}, quizType: ${quizType}`, err.message);
+            }
+
+            return {
+                ...quiz,
+                quizName
+            };
+        }));
+
+        // If a date is provided, filter quizzes by the date
+        if (date) {
+            quizzes = quizzes.filter(quiz => {
+                const quizDate = new Date(quiz.createdAt).toISOString().split('T')[0]; // Get only the date part (YYYY-MM-DD)
+                return quizDate === date;
+            });
+        }
+
+        res.status(200).json({ quizzes });
+    } catch (err) {
+        console.error("Error fetching user quizzes:", err);
+        res.status(500).json({ error: "Internal server error" });
+    }
+});
+
+
+app.get('/getquizbyid', async (req, res) => {
+    const token = req.headers.authorization?.split(" ")[1]; // Extract token
+    const { quizId } = req.query; // Get quizId from query parameters
+
+    console.log('getquizbyid ', quizId);
+    if (!token || token === "null") {
+        console.log("Invalid token");
+        return res.status(401).json({ error: "Invalid Token" });
+    }
+
+    try {
+        const data = jwt.verify(token, process.env.JWT_SECRET); // Verify the token
+        const user = await User.findOne({ _id: data._id }).lean(); // Find the user by ID with lean()
+
+        if (!user) {
+            return res.status(404).json({ error: "User not found" });
+        }
+
+        // Find the quiz by quizId
+        let quiz = user.testScores
+            .filter(quiz => quiz.quizId === quizId)  // Filter by quizId
+            .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))[0];  // Sort by createdAt in descending order and pick the first item
+
+        if (!quiz) {
+            return res.status(404).json({ error: "Quiz not found" });
+        }
+
+        let quizData = null;
+        try {
+            if (quiz.quizType === "chapter") {
+                quizData = await ChapterQuiz.findById(quizId).populate('chapterQuizQNA').lean(); // Use .lean()
+                quizData = {
+                    ...quizData,
+                    quizQuestions: quizData.chapterQuizQNA,
+                    chapterQuizQNA: null,
+                    quizType: 'chapter',
+                    quizName: quizData.chapterQuizName
+                };
+            } else if (quiz.quizType === "subject") {
+                quizData = await SubjectQuiz.findById(quizId).populate('subjectQuizQNA').lean(); // Use .lean()
+                quizData = {
+                    ...quizData,
+                    quizQuestions: quizData.subjectQuizQNA,
+                    subjectQuizQNA: null,
+                    quizType: 'subject',
+                    quizName: quizData.subjectQuizName
+                };
+            } else if (quiz.quizType === "course") {
+                quizData = await CourseQuiz.findById(quizId).populate('courseQuizQNA').lean(); // Use .lean()
+                quizData = {
+                    ...quizData,
+                    quizQuestions: quizData.courseQuizQNA,
+                    courseQuizQNA: null,
+                    quizType: 'course',
+                    quizName: quizData.courseQuizName
+                };
+            }
+        } catch (err) {
+            console.error(`Failed to fetch quiz data for quizId: ${quizId}, quizType: ${quiz.quizType}`, err.message);
+        }
+
+        quiz = { ...quiz, quizData };
+
+        console.log(quiz);
+
+        res.status(200).json(quiz);
+    } catch (err) {
+        console.error("Error fetching quiz data:", err);
+        res.status(500).json({ error: "Internal server error" });
+    }
+});
+
+
+
+app.get('/checkquizstatus', async (req, res) => {
+    const token = req.headers.authorization?.split(" ")[1]; // Extract token
+    const { quizId } = req.query; // Get quizId from query parameters
+
+    console.log('checkquizstatus ', quizId);
+    if (!token || token === "null") {
+        console.log("Invalid token");
+        return res.status(401).json({ error: "Invalid Token" });
+    }
+
+    try {
+        const data = jwt.verify(token, process.env.JWT_SECRET); // Verify the token
+        const user = await User.findOne({ _id: data._id }).lean(); // Find the user by ID
+
+        if (!user) {
+            return res.status(404).json({ error: "User not found" });
+        }
+
+        // Check if the user has given the quiz by searching for the quizId in their testScores
+        const quizTaken = user.testScores.some(quiz => quiz.quizId === quizId);
+
+        if (quizTaken) {
+            return res.status(200).json({ message: "Quiz has been taken" });
+        } else {
+            return res.status(404).json({ message: "Quiz not taken" });
+        }
+    } catch (err) {
+        console.error("Error checking quiz status:", err);
+        res.status(500).json({ error: "Internal server error" });
+    }
+});
+
+
+
 app.post('/resetpassword', (req, res) => {
     const { phone, newpassword } = req.body;
 
@@ -565,12 +737,12 @@ app.post('/cancelOrder', (req, res) => {
     const { orderId } = req.body;
     User.findOne({ _id: _id })
         .then(user => {
-     
+
             // check if order id is present in user orders
             if (user.orders.some(order => order.orderid.toString() === orderId.toString())) {
                 Order.findOne({ _id: orderId })
                     .then(order => {
-                       
+
                         // check if order is not delivered
                         if (order.isDelivered === 'Not Delivered') {
                             order.isCancelled = true;
@@ -593,7 +765,7 @@ app.post('/cancelOrder', (req, res) => {
                                 error: "Order Already Delivered"
                             });
                         }
-                        else{
+                        else {
                             res.json({
                                 error: "Something went wrong"
                             });

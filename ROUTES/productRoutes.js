@@ -79,7 +79,9 @@ app.post('/saveEditedProductById', async (req, res) => {
 app.post('/getSomeProducts' , async (req, res) => {
     const {limit} = req.body;
 
-    const products = await Product.find().limit(limit);
+    const products = await Product.find({
+        productStock: { $ne: 'OUTOFSTOCK' } // Exclude 'OUTOFSTOCK'
+    }).limit(limit);
 
     if(products){
         res.json({message: 'success', products}).status(200);
@@ -95,8 +97,9 @@ app.post('/searchStoreProducts', async (req, res) => {
     const { query } = req.body;
     try {
         const products = await Product.find({
-            productName: { $regex: query, $options: 'i' }
-        }).limit(3);  // Limit to a maximum of 3 products
+            productName: { $regex: query, $options: 'i' },
+            productStock: { $ne: 'OUTOFSTOCK' } // Exclude 'OUTOFSTOCK'
+        }).limit(3);
 
         res.status(200).json({ products });
     } catch (error) {
