@@ -11,6 +11,7 @@ const CourseQuiz = mongoose.model('CourseQuiz');
 const bcrypt = require("bcrypt");
 const jwt = require('jsonwebtoken');
 const { v4: uuidv4 } = require('uuid');
+const adminTokenHandler = require('../Middleware/AdminVerificationMiddleware');
 
 app.post('/signup', async (req, res) => {
     const { name,
@@ -358,24 +359,53 @@ app.post('/resetpassword', (req, res) => {
     }
 })
 app.get('/latestusers', (req, res) => {
-    // return max 10 users in latest date order
-    User.find().sort({ createdAt: -1 }).limit(10)
+    // Return max 10 users with relevant fields
+    User.find({}, { _id: 1, name: 1, email: 1, phone: 1, createdAt: 1 })
+        .sort({ createdAt: -1 })
+        .limit(10)
         .then(users => {
-            users.forEach(user => {
-                user.password = undefined;
-                if (!user.profilePic) {
-                    user.profilePic = "noimage";
-                }
+            users = users.map(user => {
+                if (!user.phone) user.phone = "N/A"; // Add default value if phone is missing
+                return user;
             });
-            res.json({ users: users, message: "success" });
-        }
-        )
+            res.json({ users, message: "success" });
+        })
         .catch(err => {
-            console.log(err);
-            return res.status(422).json({ error: "Server Error" });
-        }
-        )
+            console.error(err);
+            return res.status(500).json({ error: "Server Error" });
+        });
 });
+
+app.get('/searchuser', (req, res) => {
+    const { query } = req.query;
+
+    if (!query) {
+        return res.status(400).json({ error: "Query parameter is required." });
+    }
+
+    const searchCriteria = isValidObjectId(query)
+        ? { _id: query } // Exact match for ID
+        : { name: { $regex: query, $options: 'i' } }; // Case-insensitive match for name
+
+    User.find(searchCriteria, { _id: 1, name: 1, email: 1, phone: 1 })
+        .then(users => {
+            if (users.length === 0) {
+                return res.status(404).json({ message: "No users found." });
+            }
+            res.json({ users, message: "success" });
+        })
+        .catch(err => {
+            console.error(err);
+            return res.status(500).json({ error: "Server Error" });
+        });
+});
+
+// Utility function to check if a string is a valid ObjectId
+const isValidObjectId = (id) => {
+    const mongoose = require('mongoose');
+    return mongoose.Types.ObjectId.isValid(id);
+};
+
 // BUY COURSE
 app.post('/buyCourse', (req, res) => {
     const token = req.headers.authorization.split(" ")[1];
@@ -563,6 +593,44 @@ app.delete('/deleteCart', (req, res) => {
     }
 });
 
+app.delete('/clearCart', (req, res) => {
+    const token = req.headers.authorization?.split(" ")[1];
+
+    if (!token) {
+        return res.status(401).json({ error: "Unauthorized access" });
+    }
+
+    try {
+        const data = jwt.verify(token, process.env.JWT_SECRET);
+        const { _id } = data;
+
+        User.findOne({ _id: _id })
+            .then(user => {
+                if (!user) {
+                    return res.status(404).json({ error: "User not found" });
+                }
+
+                // Clear the cart
+                user.userCart = [];
+                
+                user.save()
+                    .then(() => {
+                        res.json({ message: "Cart cleared successfully", userCart: user.userCart });
+                    })
+                    .catch(err => {
+                        console.error("Error saving user cart: ", err);
+                        res.status(500).json({ error: "Server Error" });
+                    });
+            })
+            .catch(err => {
+                console.error("Error fetching user: ", err);
+                res.status(500).json({ error: "Server Error" });
+            });
+    } catch (err) {
+        console.error("JWT verification failed: ", err);
+        return res.status(401).json({ error: "Invalid token" });
+    }
+});
 
 app.post('/buyProducts', (req, res) => {
     const { cartdata,
@@ -848,6 +916,35 @@ app.get('/getUndeliveredOrdersAdmin', (req, res) => {
         });
 });
 
+app.get('/searchOrders', (req, res) => {
+    const { id} = req.query;  // Get orderId or customerId from query params
+    
+    // Build the query object dynamically based on provided parameters
+    let query = {
+        _id: id
+    };
+ 
+
+    
+    Order.find(query)
+        .then(orders => {
+            if (orders.length > 0) {
+                res.status(200).json({
+                    orders: orders
+                });
+            } else {
+                res.status(404).json({
+                    message: 'No orders found for the given search criteria'
+                });
+            }
+        })
+        .catch(err => {
+            console.log('Error searching for orders:', err);
+            res.status(500).json({
+                error: 'Server Error'
+            });
+        });
+});
 
 
 app.post('/getOrderByIdAdmin', (req, res) => {
@@ -873,7 +970,7 @@ app.post('/getOrderByIdAdmin', (req, res) => {
         });
 });
 
-app.post('/updateOrderByIdAdmin', (req, res) => {
+app.post('/updateOrderByIdAdmin', adminTokenHandler,(req, res) => {
     const { orderId, order } = req.body;
 
     if (!order) {
@@ -890,7 +987,7 @@ app.post('/updateOrderByIdAdmin', (req, res) => {
                 .then(order => {
                     res.status(200).json({
                         order: order,
-                        message: "Order Updated Successfully"
+                        message: "success"
                     });
                 })
 

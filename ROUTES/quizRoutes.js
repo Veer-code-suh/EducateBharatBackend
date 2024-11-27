@@ -9,6 +9,7 @@ const SubjectQuiz = mongoose.model('SubjectQuiz');
 const CourseQuiz = mongoose.model('CourseQuiz');
 const Question = mongoose.model('Question');
 const User = mongoose.model('User');
+const adminTokenHandler = require('../Middleware/AdminVerificationMiddleware');
 
 const bcrypt = require("bcrypt");
 const jwt = require('jsonwebtoken');
@@ -16,13 +17,12 @@ const jwt = require('jsonwebtoken');
 // add quiz to chapter
 app.post('/createQuizForChapter', async (req, res) => {
     //chapterId, quizName
-    const { chapterId, chapterQuizName, access } = req.body;
+    const { chapterId, chapterQuizName } = req.body;
     const chapter = await Chapter.findById(chapterId);
 
     const newChapterQuiz = new ChapterQuiz({
         chapterQuizName,
-        chapterId,
-        access
+        chapterId
     });
 
     const savedChapterQuiz = await newChapterQuiz.save();
@@ -38,13 +38,12 @@ app.post('/createQuizForChapter', async (req, res) => {
 });
 app.post('/createQuizForSubject', async (req, res) => {
     // same as above
-    const { subjectId, subjectQuizName, access } = req.body;
+    const { subjectId, subjectQuizName } = req.body;
     const subject = await Subject.findById(subjectId);
 
     const newSubjectQuiz = new SubjectQuiz({
         subjectQuizName,
         subjectId,
-        access
     });
 
     const savedSubjectQuiz = await newSubjectQuiz.save();
@@ -66,15 +65,14 @@ app.post('/createQuizForSubject', async (req, res) => {
 
 
 });
-app.post('/createQuizForCourse', async (req, res) => {
+app.post('/createQuizForCourse', adminTokenHandler, async (req, res) => {
     // same as above
-    const { courseId, courseQuizName, access } = req.body;
+    const { courseId, courseQuizName } = req.body;
     const course = await Course.findById(courseId);
 
     const newCourseQuiz = new CourseQuiz({
         courseQuizName,
-        courseId,
-        access
+        courseId
     });
 
     const savedCourseQuiz = await newCourseQuiz.save();
@@ -95,7 +93,7 @@ app.post('/createQuizForCourse', async (req, res) => {
 
 // add question to quiz
 app.post('/addQuestionToQuiz', async (req, res) => {
-    const { questionName, questionType, quizType, quizId, questionOptions, questionAnswer, questionMarks, questionNegativeMarks, questionSubject, questionPdf } = req.body;
+    const { questionName, questionType, quizType, quizId, questionOptions, questionAnswer, questionOrder,questionMarks, questionNegativeMarks, questionSubject, questionPdf } = req.body;
     // console.log(req.body);
     // return res.status(200).json({ message: "success", quiz:{} });
     // console.log({ questionName, questionType, quizType, quizId, questionOptions, questionAnswer, questionMarks, questionNegativeMarks, questionSubject, questionPdf })
@@ -112,10 +110,11 @@ app.post('/addQuestionToQuiz', async (req, res) => {
             questionNegativeMarks,
             questionSubject,
             questionPdf,
+            questionOrder
         });
 
         const savedQuestion = await newQuestion.save();
-        
+
 
         // Now, add the saved question's ID to the respective quiz's question array
         if (quizType === "chapter") {
@@ -150,24 +149,180 @@ app.post('/addQuestionToQuiz', async (req, res) => {
         return res.status(500).json({ error: "Error in adding question to quiz" });
     }
 });
-app.post('/getQuizData', async (req, res) => {
-    const { quizId, quizType } = req.body;
 
-    if (quizType == "chapter") {
-        const quiz = await ChapterQuiz.findById(quizId);
-        res.json({ message: "success", quiz }).status(200);
-    }
-    else if (quizType == "subject") {
-        const quiz = await SubjectQuiz.findById(quizId);
-        res.json({ message: "success", quiz }).status(200);
-    }
-    else if (quizType == "course") {
-        const quiz = await CourseQuiz.findById(quizId);
-        console.log(quiz);
-        res.json({ message: "success", quiz }).status(200);
+
+app.post('/updateQuestionPdf', async (req, res) => {
+    const { questionId , questionPdf } = req.body; // Extract the new PDF URL from the request body
+
+    if (!questionPdf) {
+        return res.status(400).json({ error: "questionPdf is required" });
     }
 
+    try {
+        // Find the question by ID and update the questionPdf field
+        const updatedQuestion = await Question.findByIdAndUpdate(
+            questionId,
+            { questionPdf },
+            { new: true } // Return the updated document
+        );
+
+        if (!updatedQuestion) {
+            return res.status(404).json({ error: "Question not found" });
+        }
+
+        return res.status(200).json({ message: "success", question: updatedQuestion });
+    } catch (error) {
+        console.error("Error updating question:", error);
+        return res.status(500).json({ error: "An error occurred while updating the question" });
+    }
 });
+
+app.post('/updateQuestion', async (req, res) => {
+    const {question} = req.body; // Get the fields to be updated from the request body
+
+    try {
+        // Find the question by ID and update it with the provided fields
+        const updatedQuestion = await Question.findByIdAndUpdate(
+            question._id,
+            question,
+            { new: true, runValidators: true } // Return updated document and run validation
+        );
+
+        if (!updatedQuestion) {
+            return res.status(404).json({ error: "Question not found" });
+        }
+
+        return res.status(200).json({ message: "success", question: updatedQuestion });
+    } catch (error) {
+        console.error("Error updating question:", error);
+        return res.status(500).json({ error: "An error occurred while updating the question" });
+    }
+});
+
+
+app.post('/getQuizData', async (req, res) => {
+    try {
+        const { quizId, quizType } = req.body;
+
+        // Validate the inputs
+        if (!quizId || !quizType) {
+            return res.status(400).json({ message: "Invalid input. quizId and quizType are required." });
+        }
+
+        let quizModified;
+
+        // Fetch data based on quizType
+        if (quizType === "chapter") {
+            let quiz = await ChapterQuiz.findById(quizId).populate({
+                path: 'chapterQuizQNA',
+                select: '-__v -createdAt -updatedAt', // Exclude unnecessary fields if required
+            })
+            if (!quiz) return res.status(404).json({ message: "Chapter Quiz not found." });
+            quizModified = {
+                ...quiz.toObject(), // Convert to plain JS object
+                parentId: quiz.chapterId,
+                quizImage: quiz.chapterQuizImage,
+                quizName: quiz.chapterQuizName,
+                quizQNA: quiz.chapterQuizQNA,
+            };
+        } else if (quizType === "subject") {
+            let quiz = await SubjectQuiz.findById(quizId).populate({
+                path: 'subjectQuizQNA',
+                select: '-__v -createdAt -updatedAt', // Exclude unnecessary fields if required
+            })
+            if (!quiz) return res.status(404).json({ message: "Subject Quiz not found." });
+            quizModified = {
+                ...quiz.toObject(), // Convert to plain JS object
+                parentId: quiz.subjectId,
+                quizImage: quiz.subjectQuizImage,
+                quizName: quiz.subjectQuizName,
+                quizQNA: quiz.subjectQuizQNA,
+            };
+        } else if (quizType === "course") {
+            let quiz = await CourseQuiz.findById(quizId).populate({
+                path: 'courseQuizQNA',
+                select: '-__v -createdAt -updatedAt', // Exclude unnecessary fields if required
+            })
+            if (!quiz) return res.status(404).json({ message: "Course Quiz not found." });
+            quizModified = {
+                ...quiz.toObject(), // Convert to plain JS object
+                parentId: quiz.courseId,
+                quizImage: quiz.courseQuizImage,
+                quizName: quiz.courseQuizName,
+                quizQNA: quiz.courseQuizQNA,
+            };
+        } else {
+            return res.status(400).json({ message: "Invalid quizType provided." });
+        }
+
+        // Respond with the quiz data
+        return res.status(200).json({ message: "success", quiz: quizModified });
+    } catch (error) {
+        console.error(error); // Log the error for debugging
+        return res.status(500).json({ message: "An error occurred.", error: error.message });
+    }
+});
+app.post('/updateQuizById', async (req, res) => {
+    try {
+        const { quiz } = req.body;
+
+        // Validate the inputs
+        if (!quiz || !quiz._id || !quiz.quizType) {
+            return res.status(400).json({ message: "Invalid input. Quiz data is required." });
+        }
+
+        let updatedQuiz;
+
+        // Find and update quiz based on quizType
+        if (quiz.quizType === "chapter") {
+            updatedQuiz = await ChapterQuiz.findByIdAndUpdate(quiz._id, quiz, { new: true });
+            if (!updatedQuiz) return res.status(404).json({ message: "Chapter Quiz not found." });
+        } else if (quiz.quizType === "subject") {
+            updatedQuiz = await SubjectQuiz.findByIdAndUpdate(quiz._id, quiz, { new: true });
+            if (!updatedQuiz) return res.status(404).json({ message: "Subject Quiz not found." });
+        } else if (quiz.quizType === "course") {
+            updatedQuiz = await CourseQuiz.findByIdAndUpdate(quiz._id, quiz, { new: true });
+            if (!updatedQuiz) return res.status(404).json({ message: "Course Quiz not found." });
+        } else {
+            return res.status(400).json({ message: "Invalid quizType provided." });
+        }
+        console.log(updatedQuiz)
+        // Return the updated quiz data
+        return res.status(200).json({ message: "success"});
+    } catch (error) {
+        console.error(error); // Log the error for debugging
+        return res.status(500).json({ message: "An error occurred.", error: error.message });
+    }
+});
+
+app.post('/getQuestionData', async (req, res) => {
+    try {
+        const { questionId } = req.body;
+
+        // Validate input
+        if (!questionId) {
+            return res.status(400).json({ message: "Invalid input. questionId is required." });
+        }
+
+        // Fetch the question from the database
+        const question = await Question.findById(questionId);
+
+        // If the question is not found, return an error response
+        if (!question) {
+            return res.status(404).json({ message: "Question not found." });
+        }
+
+        // Return the question data
+        return res.status(200).json({
+            message: "success",
+            question,
+        });
+    } catch (error) {
+        console.error(error); // Log the error for debugging
+        return res.status(500).json({ message: "An error occurred.", error: error.message });
+    }
+});
+
 
 app.post('/getQuizStartData', async (req, res) => {
     const { quizId, quizType } = req.body;
@@ -267,7 +422,7 @@ app.post('/deleteQuestion', async (req, res) => {
         // Save the updated quiz
         await quiz.save();
 
-        res.status(200).json({ message: "Question deleted successfully", quiz });
+        res.status(200).json({ message: "success" });
     } catch (err) {
         console.error("Error deleting question:", err);
         res.status(500).json({ error: "Error in deleting question from quiz" });
@@ -282,7 +437,7 @@ app.post('/submitQuiz', async (req, res) => {
     // total: thisQuiz.courseQuizQNA.length,
     // quizData : thisQuiz
 
-    const { quizId, quizType, score, total,  createdAt, userAnswers } = req.body;
+    const { quizId, quizType, score, total, createdAt, userAnswers } = req.body;
     const token = req.headers.authorization.split(" ")[1];
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
@@ -291,7 +446,7 @@ app.post('/submitQuiz', async (req, res) => {
 
     //  find user
     User.findById(_id).then(user => {
-        user.testScores.push({ quizId, quizType, score, total,  createdAt, userAnswers });
+        user.testScores.push({ quizId, quizType, score, total, createdAt, userAnswers });
         user.save().then(user => {
             res.json({ message: "success" }).status(200);
         }).catch(err => {

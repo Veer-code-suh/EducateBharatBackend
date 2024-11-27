@@ -35,6 +35,10 @@ const CourseQuiz = new mongoose.Schema({
         type: Number,
         default: 60000
         // 60000 ms = 1 minute
+    },
+    disabled: {
+        type: Boolean,
+        default: false
     }
 },
     {

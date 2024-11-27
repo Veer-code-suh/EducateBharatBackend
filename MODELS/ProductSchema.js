@@ -35,6 +35,10 @@ const Product = new mongoose.Schema({
     productStock: {
         type: String,
         default: 'INSTOCK'
+    },
+    productDiscount:{
+        type:Number,
+        default: 0
     }
 
 },

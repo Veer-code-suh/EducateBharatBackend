@@ -19,7 +19,7 @@ const ChapterQuiz = new mongoose.Schema({
         type: String,
         required: true
     },
-    QuizType: {
+    quizType: {
         type: String,
         default: 'chapter'
     },

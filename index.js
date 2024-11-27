@@ -20,6 +20,7 @@ require('./MODELS/Quiz/QuestionSchema');
 require('./MODELS/ProductSchema')
 require('./MODELS/OrderSchema');
 require('./MODELS/BannerSchema');
+require('./MODELS/ExtrasSchema');
 
 require('./MODELS/PurchasesSchema');
 // 
@@ -32,6 +33,8 @@ const chapterRoutes = require('./ROUTES/chapterRoutes');
 const quizRoutes = require('./ROUTES/quizRoutes');
 const productRoutes = require('./ROUTES/productRoutes');
 const bannerRoutes = require('./ROUTES/bannerRoutes');
+const extrasRoutes = require('./ROUTES/extrasRoutes');
+
 const adminRoutes = require('./ROUTES/adminRoutes');
 
 const { uploadFile } = require("./ROUTES/s3");
@@ -60,6 +63,8 @@ app.use(chapterRoutes)
 app.use(quizRoutes)
 app.use(productRoutes)
 app.use(bannerRoutes)
+app.use(extrasRoutes)
+
 
 app.use(adminRoutes)
 // app.use("/api/v1/media", mediaRoutes);

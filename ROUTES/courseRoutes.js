@@ -7,28 +7,17 @@ const Chapter = mongoose.model('Chapter');
 
 const bcrypt = require("bcrypt");
 const jwt = require('jsonwebtoken');
+const adminTokenHandler = require('../Middleware/AdminVerificationMiddleware');
 
 app.post('/addCourse', async (req, res) => {
     // later add authentication
 
-    const { coursePrice, courseName, courseDescription, courseImage } = req.body;
+    const { courseName } = req.body;
 
-    // let updatedSubjects = [];
-    // for (const subjectName of courseSubjects) {
-    //     const newSubject = new Subject({
-    //         subjectName
-    //     });
-
-    //     const savedSubject = await newSubject.save();
-    //     updatedSubjects.push({ subjectName: savedSubject.subjectName, _id: savedSubject._id });
-    // }
+    
 
     const newCourse = new Course({
-        coursePrice,
-        // courseSubjects: updatedSubjects,
-        courseName,
-        courseDescription,
-        courseImage,
+        courseName
     });
 
     newCourse.save().then(course => {
@@ -93,25 +82,55 @@ app.post('/courseqnabycourseid', async (req, res) => {
     res.json({ course, message: 'success' }).status(200);
 });
 
-app.post('/saveEditedCourseById', async (req, res) => {
-    const { _id, courseName, coursePrice, courseDescription, courseImage } = req.body;
-    const course = await Course.findById(_id);
+app.patch('/saveEditedCourseById', adminTokenHandler ,async (req, res) => {
+    const { _id, courseName, coursePrice, courseDescription, courseImage ,courseCategory,courseRating,disabled,courseDiscount} = req.body;
 
-    course.courseName = courseName;
-    course.coursePrice = coursePrice;
-    course.courseDescription = courseDescription;
-    course.courseImage = courseImage;
+    try {
+        const course = await Course.findById(_id);
 
-    course.save().then(course => {
-        res.json({ message: "success", course }).status(200);
+        if (!course) {
+            return res.status(404).json({ error: "Course not found" });
+        }
+
+        // Update fields only if the new value is different from the existing value
+        if (courseName !== undefined && courseName !== course.courseName) {
+            course.courseName = courseName;
+        }
+        if (coursePrice !== undefined && coursePrice !== course.coursePrice) {
+            course.coursePrice = coursePrice;
+        }
+        if (courseDescription !== undefined && courseDescription !== course.courseDescription) {
+            course.courseDescription = courseDescription;
+        }
+        if (courseCategory !== undefined && courseCategory !== course.courseCategory) {
+            course.courseCategory = courseCategory;
+        }
+        if (courseRating !== undefined && courseRating !== course.courseRating) {
+            course.courseRating = courseRating;
+        }
+        if (courseImage !== undefined && courseImage !== course.courseImage) {
+            course.courseImage = courseImage;
+        }
+        if (disabled !== undefined && disabled !== course.disabled) {
+            course.disabled = disabled;
+        }
+        if (courseDiscount !== undefined && courseDiscount !== course.courseDiscount) {
+            course.courseDiscount = courseDiscount;
+        }
+        // Save only if something was modified
+        if (course.isModified()) {
+            const updatedCourse = await course.save();
+            return res.status(200).json({ message: "Course updated successfully", course: updatedCourse });
+        }
+
+        return res.status(200).json({ message: "No changes made to the course" });
+
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: "Error updating course" });
     }
-    ).catch(err => {
-        res.json({ error: "Error in editing course" }).status(500);
-        console.log(err);
-    }
-    );
-
 });
+
 
 // add subject to course
 app.post('/addSubjectToCourse', async (req, res) => {
@@ -180,6 +199,31 @@ app.post('/addChapterToSubject', async (req, res) => {
         console.log(err);
     });
 
+});
+app.post('/getSubjectBySubjectId', async (req, res) => {
+    const { subjectId } = req.body;
+    const subject = await Subject.findById(subjectId);
+    res.json({ subject, message: "success" }).status(200);
+
+});
+
+
+
+app.post('/updateSubjectById', async (req, res) => {
+    const { _id, subjectName} = req.body;
+
+    const subject = await Subject.findById(_id);
+
+    subject.subjectName = subjectName;
+
+    subject.save().then(subject => {
+        res.json({ message: "success", subject }).status(200);
+    }
+    ).catch(err => {
+        res.json({ error: "Error in updating subject" }).status(500);
+        console.log(err);
+    }
+    );
 });
 
 app.post('/getChaptersAndQuizesBySubjectId', async (req, res) => {

@@ -5,7 +5,14 @@ const bcrypt = require("bcrypt");
 const Course = new mongoose.Schema({
     coursePrice: {
         type: String,
-        required: true
+    },
+    courseDiscount: {
+        type: Number,
+        default:0
+    },
+    courseCategory: {
+        type: String,
+        default: 'PAID'
     },
     coursePriceCurrency: {
         type: String,
@@ -42,6 +49,10 @@ const Course = new mongoose.Schema({
     introVideo: {
         type: String,
         default: ''
+    },
+    disabled: {
+        type: Boolean,
+        default: false
     }
 },
     {

@@ -10,6 +10,7 @@ const Subject = new mongoose.Schema({
     subjectDescription: {
         type: String,
     },
+
     subjectChapters: {
         type: Array,
         default: []

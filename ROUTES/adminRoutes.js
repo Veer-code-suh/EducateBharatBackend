@@ -104,7 +104,7 @@ router.post('/adminLogin', async (req, res) => {
         const isMatch = await bcrypt.compare(otp, admin.otp);
         if (isMatch) {
             // expires in 1 hour
-            const token = jwt.sign({ email: adminEmail, password: otp }, process.env.JWT_SECRET, { expiresIn: '1h' });
+            const token = jwt.sign({ email: adminEmail, password: otp }, process.env.JWT_SECRET, { expiresIn: '1d' });
             res.json({ message: "success", token: token });
         }
         else {

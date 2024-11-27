@@ -1,13 +1,7 @@
 const express = require('express');
 const app = express.Router();
 const mongoose = require('mongoose');
-const User = mongoose.model('User');
-const Order = mongoose.model('Order');
-const Purchase = mongoose.model('Purchase');
 const Banner = mongoose.model('Banner');
-const bcrypt = require("bcrypt");
-const jwt = require('jsonwebtoken');
-const { v4: uuidv4 } = require('uuid');
 
 app.post('/addbanner', async (req, res) => {
     const {imgUrl, redirectUrl} = req.body;
