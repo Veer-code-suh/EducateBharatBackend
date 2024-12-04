@@ -612,7 +612,7 @@ app.delete('/clearCart', (req, res) => {
 
                 // Clear the cart
                 user.userCart = [];
-                
+
                 user.save()
                     .then(() => {
                         res.json({ message: "Cart cleared successfully", userCart: user.userCart });
@@ -633,26 +633,19 @@ app.delete('/clearCart', (req, res) => {
 });
 
 app.post('/buyProducts', (req, res) => {
-    const { cartdata,
-        cartTotal,
-        paymentMethod,
-        paymentId,
-        shipping,
-        tax, address } = req.body;
+    const { cartdata, cartTotal, paymentMethod, paymentId, shipping,  address } = req.body;
+    console.log(req.body);
 
-    if (!cartdata || !cartTotal || !paymentMethod || !shipping || !tax || !address || !paymentId) {
-        res.json({
+    if (!cartdata || !cartTotal || !paymentMethod || !shipping || !address || !paymentId) {
+        return res.json({
             error: "Retry"
-        });
+        }); // Add return here to stop further execution
     }
-
 
     const token = req.headers.authorization.split(" ")[1];
     const data = jwt.verify(token, process.env.JWT_SECRET);
+    console.log(data);
     const { _id } = data;
-
-
-
 
     User.findOne({ _id: _id })
         .then(user => {
@@ -664,7 +657,7 @@ app.post('/buyProducts', (req, res) => {
                 carttotal: cartTotal,
                 userId: _id,
                 shippingCost: shipping,
-                tax: tax,
+                tax: 0,
                 isPaid: paymentMethod !== "COD" ? true : false,
                 paidAt: paymentMethod !== "COD" ? Date.now() : null,
             });
@@ -676,20 +669,28 @@ app.post('/buyProducts', (req, res) => {
                         orderid: orderid,
                         createdAt: order.createdAt,
                     });
-                    // user.userCart = [];
+                    // user.userCart = []; // Optional if you want to clear the cart
                     user.save()
                         .then(user => {
                             res.json({ message: "Order Placed Successfully", userCart: user.userCart, order });
                         })
+                        .catch(err => {
+                            console.log('Error saving user:', err);
+                            res.status(500).json({ error: 'Failed to save user data.' });
+                        });
                 })
+                .catch(err => {
+                    console.log('Error saving order:', err);
+                    res.status(500).json({ error: 'Failed to save order data.' });
+                });
         })
         .catch(err => {
-            console.log('err getting user data from token ', err)
-        })
+            console.log('Error getting user data from token:', err);
+            res.status(500).json({ error: 'Failed to get user data.' });
+        });
+});
 
 
-
-})
 
 app.get('/getUserAddress', (req, res) => {
     const token = req.headers.authorization.split(" ")[1];
@@ -917,15 +918,15 @@ app.get('/getUndeliveredOrdersAdmin', (req, res) => {
 });
 
 app.get('/searchOrders', (req, res) => {
-    const { id} = req.query;  // Get orderId or customerId from query params
-    
+    const { id } = req.query;  // Get orderId or customerId from query params
+
     // Build the query object dynamically based on provided parameters
     let query = {
         _id: id
     };
- 
 
-    
+
+
     Order.find(query)
         .then(orders => {
             if (orders.length > 0) {
@@ -970,7 +971,7 @@ app.post('/getOrderByIdAdmin', (req, res) => {
         });
 });
 
-app.post('/updateOrderByIdAdmin', adminTokenHandler,(req, res) => {
+app.post('/updateOrderByIdAdmin', adminTokenHandler, (req, res) => {
     const { orderId, order } = req.body;
 
     if (!order) {

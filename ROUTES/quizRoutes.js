@@ -218,6 +218,7 @@ app.post('/getQuizData', async (req, res) => {
                 select: '-__v -createdAt -updatedAt', // Exclude unnecessary fields if required
             })
             if (!quiz) return res.status(404).json({ message: "Chapter Quiz not found." });
+          
             quizModified = {
                 ...quiz.toObject(), // Convert to plain JS object
                 parentId: quiz.chapterId,
@@ -431,37 +432,43 @@ app.post('/deleteQuestion', async (req, res) => {
 
 
 app.post('/submitQuiz', async (req, res) => {
-    // quizId: thisQuiz._id,
-    // quizType: thisQuiz.quizType,
-    // score: score,
-    // total: thisQuiz.courseQuizQNA.length,
-    // quizData : thisQuiz
-
     const { quizId, quizType, score, total, createdAt, userAnswers } = req.body;
     const token = req.headers.authorization.split(" ")[1];
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const { _id } = decoded;
+    try {
+        // Decode the token to get user ID
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        const { _id } = decoded;
 
+        // Find the user in the database
+        const user = await User.findById(_id);
 
-    //  find user
-    User.findById(_id).then(user => {
+        if (!user) {
+            return res.status(404).json({ error: "User not found" });
+        }
+
+        // Check if the quiz has already been taken
+        const existingQuizIndex = user.testScores.findIndex(score => score.quizId === quizId);
+
+        if (existingQuizIndex !== -1) {
+            // If quiz exists, delete the previous one and overwrite with the latest data
+            user.testScores.splice(existingQuizIndex, 1);
+        }
+
+        // Add the new quiz result
         user.testScores.push({ quizId, quizType, score, total, createdAt, userAnswers });
-        user.save().then(user => {
-            res.json({ message: "success" }).status(200);
-        }).catch(err => {
-            res.json({ error: "Error in finding user" }).status(500);
-            console.log(err);
-        });
-    }).catch(err => {
-        res.json({ error: "Error in finding user" }).status(500);
-        console.log(err);
-    });
 
+        // Save the user data
+        await user.save();
 
+        // Respond with success
+        res.json({ message: "Quiz submitted successfully" }).status(200);
 
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: "Error in submitting quiz" });
+    }
 });
-
 
 
 

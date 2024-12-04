@@ -14,7 +14,7 @@ app.post('/addCourse', async (req, res) => {
 
     const { courseName } = req.body;
 
-    
+
 
     const newCourse = new Course({
         courseName
@@ -29,30 +29,45 @@ app.post('/addCourse', async (req, res) => {
 
 
 });
-app.get('/allCourses', async (req, res) => {
-    const courses = await Course.find();
+app.post('/allCourses', async (req, res) => {
+    const { isUser } = req.body;
+    const courses = isUser ?
+        await Course.find({
+            $or: [
+                { disabled: false }, // Include if `disabled` is explicitly false
+                { disabled: { $exists: false } } // Include if `disabled` field is missing
+            ]
+        }) :
+        await Course.find()
+        ;
     res.json({ courses }).status(200);
 });
 app.post('/getSomeCourses', async (req, res) => {
     const { limit } = req.body;
 
     try {
-        const courses = await Course.find()
+        const courses = await Course.find({
+            $or: [
+                { disabled: false }, // Include if `disabled` is explicitly false
+                { disabled: { $exists: false } } // Include if `disabled` field is missing
+            ]
+        }) // Filter by `disabled: false`
             .sort({ createdAt: -1 }) // Sort by creation date in descending order
             .limit(limit)             // Limit the number of results
             .select('courseName coursePrice courseDescription courseImage'); // Select specific fields
-
+        console.log(courses);
         res.status(200).json({ courses });
     } catch (error) {
         console.error("Error fetching courses:", error);
         res.status(500).json({ error: "Failed to fetch courses" });
     }
 });
+
 app.post('/searchCourses', async (req, res) => {
     const { query } = req.body;
     try {
         const courses = await Course.find({
-            courseName: { $regex: query, $options: 'i' }
+            courseName: { $regex: query, $options: 'i' },
         })
             .limit(3)
             .select('courseName coursePrice courseDescription courseImage'); // Select specific fields
@@ -82,8 +97,8 @@ app.post('/courseqnabycourseid', async (req, res) => {
     res.json({ course, message: 'success' }).status(200);
 });
 
-app.patch('/saveEditedCourseById', adminTokenHandler ,async (req, res) => {
-    const { _id, courseName, coursePrice, courseDescription, courseImage ,courseCategory,courseRating,disabled,courseDiscount} = req.body;
+app.patch('/saveEditedCourseById', adminTokenHandler, async (req, res) => {
+    const { _id, courseName, coursePrice, courseDescription, courseImage, courseCategory, courseRating, disabled, courseDiscount } = req.body;
 
     try {
         const course = await Course.findById(_id);
@@ -210,7 +225,7 @@ app.post('/getSubjectBySubjectId', async (req, res) => {
 
 
 app.post('/updateSubjectById', async (req, res) => {
-    const { _id, subjectName} = req.body;
+    const { _id, subjectName } = req.body;
 
     const subject = await Subject.findById(_id);
 
