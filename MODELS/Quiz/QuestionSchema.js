@@ -6,14 +6,15 @@ const questionSchema = new Schema({
         type: String,
         required: true,
     },
-    questionOrder:{
+    questionOrder: {
         type: Number,
         required: true,
     },
     questionType: {
         type: String,
-
         required: true,
+        enum: ["MCQ", "Short Answer", "MoreThanOne"], // Restrict to these values
+        default:"MCQ"
     },
     quizType: {
         type: String,
