@@ -36,6 +36,38 @@ app.post('/createQuizForChapter', async (req, res) => {
         console.log(err);
     });
 });
+
+app.post('/deleteQuizFromChapter', async (req, res) => {
+    const { quizId, chapterId } = req.body;
+
+    try {
+        // Find the chapter
+        const chapter = await Chapter.findById(chapterId);
+
+        if (!chapter) {
+            return res.status(404).json({ message: 'Chapter not found' });
+        }
+
+        // Remove the quiz from the chapter's chapterQuizzes array
+        const updatedQuizzes = chapter.chapterQuizzes.filter(quiz => quiz._id.toString() !== quizId);
+
+        // Update the chapter's quizzes
+        chapter.chapterQuizzes = updatedQuizzes;
+
+        await chapter.save();
+
+        // Now delete the quiz itself from the ChapterQuiz collection
+        await ChapterQuiz.findByIdAndDelete(quizId);
+
+        res.status(200).json({ message: 'Quiz deleted successfully from chapter and database' , chapter});
+    } catch (error) {
+        console.error('Error deleting quiz:', error);
+        res.status(500).json({ message: 'Error deleting quiz', error });
+    }
+});
+
+
+
 app.post('/createQuizForSubject', async (req, res) => {
     // same as above
     const { subjectId, subjectQuizName } = req.body;
@@ -60,11 +92,37 @@ app.post('/createQuizForSubject', async (req, res) => {
         console.log(err);
     }
     );
-
-
-
-
 });
+
+app.post('/deleteQuizFromSubject', async (req, res) => {
+    const { quizId, subjectId } = req.body;
+
+    try {
+        // Find the subject by its ID
+        const subject = await Subject.findById(subjectId);
+
+        if (!subject) {
+            return res.status(404).json({ message: 'Subject not found' });
+        }
+
+        // Filter out the quiz from the subject's quizzes array
+        const updatedQuizzes = subject.subjectQuizzes.filter(quiz => quiz._id.toString() !== quizId);
+
+        subject.subjectQuizzes = updatedQuizzes;
+
+        // Save the updated subject
+        await subject.save();
+
+        // Delete the quiz from the database
+        await SubjectQuiz.findByIdAndDelete(quizId);
+
+        res.status(200).json({ message: 'Quiz deleted successfully from subject and database', subject });
+    } catch (error) {
+        console.error('Error deleting quiz:', error);
+        res.status(500).json({ message: 'Error deleting quiz from subject', error });
+    }
+});
+
 app.post('/createQuizForCourse', adminTokenHandler, async (req, res) => {
     // same as above
     const { courseId, courseQuizName } = req.body;
@@ -90,10 +148,40 @@ app.post('/createQuizForCourse', adminTokenHandler, async (req, res) => {
 
 });
 
+app.post('/deleteQuizFromCourse', adminTokenHandler, async (req, res) => {
+    const { courseId, quizId } = req.body;
+
+    try {
+        // Find the course by ID
+        const course = await Course.findById(courseId);
+
+        if (!course) {
+            return res.status(404).json({ error: "Course not found" });
+        }
+
+        // Remove the quiz from course's quizzes array
+        course.courseQuizzes = course.courseQuizzes.filter(quiz => quiz._id.toString() !== quizId);
+
+        // Save the updated course
+        await course.save();
+
+        // Delete the quiz itself from the CourseQuiz collection
+        const deletedQuiz = await CourseQuiz.findByIdAndDelete(quizId);
+
+        if (!deletedQuiz) {
+            return res.status(404).json({ error: "Quiz not found" });
+        }
+
+        res.status(200).json({ message: "Quiz deleted successfully from course and database", course });
+    } catch (error) {
+        console.error('Error deleting quiz from course:', error);
+        res.status(500).json({ error: "An error occurred while deleting the quiz" });
+    }
+});
 
 // add question to quiz
 app.post('/addQuestionToQuiz', async (req, res) => {
-    const { questionName, questionType, quizType, quizId, questionOptions, questionAnswer, questionOrder,questionMarks, questionNegativeMarks, questionSubject, questionPdf } = req.body;
+    const { questionName, questionType, quizType, quizId, questionOptions, questionAnswer, questionOrder, questionMarks, questionNegativeMarks, questionSubject, questionPdf } = req.body;
     // console.log(req.body);
     // return res.status(200).json({ message: "success", quiz:{} });
     // console.log({ questionName, questionType, quizType, quizId, questionOptions, questionAnswer, questionMarks, questionNegativeMarks, questionSubject, questionPdf })
@@ -152,7 +240,7 @@ app.post('/addQuestionToQuiz', async (req, res) => {
 
 
 app.post('/updateQuestionPdf', async (req, res) => {
-    const { questionId , questionPdf } = req.body; // Extract the new PDF URL from the request body
+    const { questionId, questionPdf } = req.body; // Extract the new PDF URL from the request body
 
     if (!questionPdf) {
         return res.status(400).json({ error: "questionPdf is required" });
@@ -178,7 +266,7 @@ app.post('/updateQuestionPdf', async (req, res) => {
 });
 
 app.post('/updateQuestion', async (req, res) => {
-    const {question} = req.body; // Get the fields to be updated from the request body
+    const { question } = req.body; // Get the fields to be updated from the request body
 
     try {
         // Find the question by ID and update it with the provided fields
@@ -218,7 +306,7 @@ app.post('/getQuizData', async (req, res) => {
                 select: '-__v -createdAt -updatedAt', // Exclude unnecessary fields if required
             })
             if (!quiz) return res.status(404).json({ message: "Chapter Quiz not found." });
-          
+
             quizModified = {
                 ...quiz.toObject(), // Convert to plain JS object
                 parentId: quiz.chapterId,
@@ -289,7 +377,7 @@ app.post('/updateQuizById', async (req, res) => {
         }
         console.log(updatedQuiz)
         // Return the updated quiz data
-        return res.status(200).json({ message: "success"});
+        return res.status(200).json({ message: "success" });
     } catch (error) {
         console.error(error); // Log the error for debugging
         return res.status(500).json({ message: "An error occurred.", error: error.message });
@@ -391,39 +479,67 @@ app.post('/deleteQuestion', async (req, res) => {
     const { quizId, quizType, questionId } = req.body;
 
     try {
+        console.log("Request received with:", { quizId, quizType, questionId });
+
         // Step 1: Remove the question from the questions collection
-        await Question.findByIdAndDelete(questionId);
+        const deletedQuestion = await Question.findByIdAndDelete(questionId);
+        if (!deletedQuestion) {
+            return res.status(404).json({ error: "Question not found" });
+        }
 
         let quiz;
-        let quizField;
+        let field;
 
-        // Step 2: Find the quiz based on quizType and remove the questionId reference
         if (quizType === "chapter") {
-            quiz = await ChapterQuiz.findById(quizId);
-            quizField = "chapterQuizQNA";
+            // Exclude chapterQuizQNA field from the result
+            ChapterQuiz.findById(quizId).then((result) => {
+                quiz = result;
+                field = 'chapterQuizQNA';
+                processQuiz();
+            }).catch((err) => {
+                return res.status(500).json({ error: "Error fetching ChapterQuiz", details: err.message });
+            });
         } else if (quizType === "subject") {
-            quiz = await SubjectQuiz.findById(quizId);
-            quizField = "subjectQuizQNA";
+            // Exclude subjectQuizQNA field from the result
+            SubjectQuiz.findById(quizId).then((result) => {
+                quiz = result;
+                field = 'subjectQuizQNA';
+                processQuiz();
+            }).catch((err) => {
+                return res.status(500).json({ error: "Error fetching SubjectQuiz", details: err.message });
+            });
         } else if (quizType === "course") {
-            quiz = await CourseQuiz.findById(quizId);
-            quizField = "courseQuizQNA";
+            // Exclude courseQuizQNA field from the result
+            CourseQuiz.findById(quizId).then((result) => {
+                quiz = result;
+                field = 'courseQuizQNA';
+                processQuiz();
+            }).catch((err) => {
+                return res.status(500).json({ error: "Error fetching CourseQuiz", details: err.message });
+            });
         } else {
             return res.status(400).json({ error: "Invalid quiz type" });
         }
 
-        if (!quiz) {
-            return res.status(404).json({ error: "Quiz not found" });
+        function processQuiz() {
+            if (!quiz) {
+                return res.status(404).json({ error: "Quiz not found" });
+            }
+
+            // Step 3: Filter out the question ID from the quiz's question array
+            quiz[field] = quiz[field].filter((qId) => qId.toString() !== questionId);
+
+            // Save the updated quiz
+            quiz.save()
+                .then(() => {
+                    console.log("Updated quiz saved successfully");
+                    res.status(200).json({ message: "success" });
+                })
+                .catch((err) => {
+                    res.status(500).json({ error: "Error saving quiz", details: err.message });
+                });
         }
 
-        // Step 3: Filter out the question ID from the quiz's question array
-        quiz[quizField] = quiz[quizField].filter(
-            (qId) => qId.toString() !== questionId
-        );
-
-        // Save the updated quiz
-        await quiz.save();
-
-        res.status(200).json({ message: "success" });
     } catch (err) {
         console.error("Error deleting question:", err);
         res.status(500).json({ error: "Error in deleting question from quiz" });

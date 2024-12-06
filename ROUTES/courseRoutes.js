@@ -91,6 +91,31 @@ app.post('/coursebycourseid', async (req, res) => {
     res.json({ course, message: 'success' }).status(200);
 });
 
+app.post('/deletecoursebyid', (req, res) => {
+    const { courseId } = req.body;
+
+    // Find the course by ID
+    Course.findById(courseId)
+        .then((course) => {
+            if (!course) {
+                return res.status(404).json({ error: "Course not found" });
+            }
+
+            // Delete the course
+            Course.findByIdAndDelete(courseId)
+                .then(() => {
+                    res.status(200).json({ message: "Course deleted successfully" });
+                })
+                .catch((err) => {
+                    res.status(500).json({ error: "Error deleting course", details: err.message });
+                });
+        })
+        .catch((err) => {
+            res.status(500).json({ error: "Error finding course", details: err.message });
+        });
+});
+
+
 app.post('/courseqnabycourseid', async (req, res) => {
     const { courseId } = req.body;
     const course = await Course.findById(courseId).select('courseQuizzes courseSubjects');
@@ -174,7 +199,14 @@ app.post('/addSubjectToCourse', async (req, res) => {
 app.post('/deleteSubjectFromCourse', async (req, res) => {
     // subjectId, courseId
     const { subjectId, courseId } = req.body;
+    const subject = await Subject.findById(subjectId);
 
+    if (!subject) {
+        return res.status(404).json({ message: 'Subject not found' });
+    }
+
+    // Remove the subject from the Subject collection
+    await Subject.findByIdAndDelete(subjectId);
     const course = await Course.findById(courseId);
 
     const updatedSubjects = course.courseSubjects.filter(subject => subject._id != subjectId);
@@ -215,6 +247,36 @@ app.post('/addChapterToSubject', async (req, res) => {
     });
 
 });
+
+app.post('/deleteChapterFromSubject', async (req, res) => {
+    const { chapterId, subjectId } = req.body;
+
+    try {
+        // Find the subject
+        const subject = await Subject.findById(subjectId);
+
+        if (!subject) {
+            return res.status(404).json({ message: 'Subject not found' });
+        }
+
+        // Remove the chapter from the subject's subjectChapters array
+        const updatedChapters = subject.subjectChapters.filter(chapter => chapter._id.toString() !== chapterId);
+
+        // Update the subject's chapters
+        subject.subjectChapters = updatedChapters;
+
+        await subject.save();
+
+        // Now delete the chapter itself from the Chapter collection
+        await Chapter.findByIdAndDelete(chapterId);
+
+        res.status(200).json({ message: 'Chapter deleted successfully from subject and database',subject });
+    } catch (error) {
+        console.error('Error deleting chapter:', error);
+        res.status(500).json({ message: 'Error deleting chapter', error });
+    }
+});
+
 app.post('/getSubjectBySubjectId', async (req, res) => {
     const { subjectId } = req.body;
     const subject = await Subject.findById(subjectId);

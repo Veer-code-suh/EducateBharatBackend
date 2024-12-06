@@ -5,31 +5,21 @@ require("dotenv").config();
 require("./MODELS/Quiz/QuestionSchema");
 const Question = mongoose.model("Question");
 
-async function updateQuestionMarks() {
+async function updateQuestionOptions() {
   try {
     await mongoose.connect(process.env.MONGO_URL, { useNewUrlParser: true, useUnifiedTopology: true });
     console.log("Connected to database");
 
-    // Update for "MCQ"
-    const mcqResult = await Question.updateMany(
-      { questionType: "MCQ" },
-      { $set: { questionMarks: 4, questionNegativeMarks: -1 } }
+    // Find and update MCQs with specific questionOptions
+    const result = await Question.updateMany(
+      { 
+        quizType:"fullquiz"
+      },
+      { 
+        $set: { quizType: "course" }
+      }
     );
-    console.log(`${mcqResult.modifiedCount} MCQ questions updated.`);
-
-    // Update for "Short Answer"
-    const shortAnswerResult = await Question.updateMany(
-      { questionType: "Short Answer" },
-      { $set: { questionMarks: 4, questionNegativeMarks: 0 } }
-    );
-    console.log(`${shortAnswerResult.modifiedCount} Short Answer questions updated.`);
-
-    // Update for "MoreThanOne"
-    const moreThanOneResult = await Question.updateMany(
-      { questionType: "MoreThanOne" },
-      { $set: { questionMarks: 4, questionNegativeMarks: -1 } }
-    );
-    console.log(`${moreThanOneResult.modifiedCount} MoreThanOne questions updated.`);
+    console.log(`${result.modifiedCount} MCQ questions updated.`);
 
     await mongoose.disconnect();
     console.log("Database connection closed.");
@@ -38,4 +28,4 @@ async function updateQuestionMarks() {
   }
 }
 
-updateQuestionMarks();
+updateQuestionOptions();
