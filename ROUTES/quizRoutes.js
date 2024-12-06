@@ -59,7 +59,7 @@ app.post('/deleteQuizFromChapter', async (req, res) => {
         // Now delete the quiz itself from the ChapterQuiz collection
         await ChapterQuiz.findByIdAndDelete(quizId);
 
-        res.status(200).json({ message: 'Quiz deleted successfully from chapter and database' , chapter});
+        res.status(200).json({ message: 'Quiz deleted successfully from chapter and database', chapter });
     } catch (error) {
         console.error('Error deleting quiz:', error);
         res.status(500).json({ message: 'Error deleting quiz', error });
@@ -365,13 +365,62 @@ app.post('/updateQuizById', async (req, res) => {
         // Find and update quiz based on quizType
         if (quiz.quizType === "chapter") {
             updatedQuiz = await ChapterQuiz.findByIdAndUpdate(quiz._id, quiz, { new: true });
+
             if (!updatedQuiz) return res.status(404).json({ message: "Chapter Quiz not found." });
+
+            let chapterId = updatedQuiz.chapterId;
+            const chapter = await Chapter.findById(chapterId);
+            if (chapter) {
+                const quizIndex = chapter.chapterQuizzes.findIndex(q => q._id.toString() === updatedQuiz._id.toString());
+                if (quizIndex !== -1) {
+                    // Update the specific quiz in the course array
+                    chapter.chapterQuizzes[quizIndex] = {
+                        chapterQuizName: updatedQuiz.chapterQuizName, 
+                        _id: updatedQuiz._id, 
+                        access: updatedQuiz.access
+                    };
+                    await chapter.save();
+                }
+            }
+
         } else if (quiz.quizType === "subject") {
             updatedQuiz = await SubjectQuiz.findByIdAndUpdate(quiz._id, quiz, { new: true });
             if (!updatedQuiz) return res.status(404).json({ message: "Subject Quiz not found." });
+            let subjectId = updatedQuiz.subjectId;
+            const subject = await Subject.findById(subjectId);
+
+
+            if (subject) {
+                const quizIndex = subject.subjectQuizzes.findIndex(q => q._id.toString() === updatedQuiz._id.toString());
+                if (quizIndex !== -1) {
+                    // Update the specific quiz in the course array
+                    subject.subjectQuizzes[quizIndex] = {
+                        subjectQuizName: updatedQuiz.subjectQuizName, 
+                        _id: updatedQuiz._id, 
+                        access: updatedQuiz.access
+                    };
+                    await subject.save();
+                }
+            }
+
         } else if (quiz.quizType === "course") {
             updatedQuiz = await CourseQuiz.findByIdAndUpdate(quiz._id, quiz, { new: true });
             if (!updatedQuiz) return res.status(404).json({ message: "Course Quiz not found." });
+
+            let courseId = updatedQuiz.courseId;
+            const course = await Course.findById(courseId);
+            if (course) {
+                const quizIndex = course.courseQuizzes.findIndex(q => q._id.toString() === updatedQuiz._id.toString());
+                if (quizIndex !== -1) {
+                    // Update the specific quiz in the course array
+                    course.courseQuizzes[quizIndex] = {
+                        courseQuizName: updatedQuiz.courseQuizName,
+                        _id: updatedQuiz._id,
+                        access: updatedQuiz.access
+                    };
+                    await course.save();
+                }
+            }
         } else {
             return res.status(400).json({ message: "Invalid quizType provided." });
         }
