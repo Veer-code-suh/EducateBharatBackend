@@ -30,7 +30,7 @@ const questionSchema = new Schema({
         required: function () { return this.questionType === 'MCQ'; }, // Only required for MCQ type questions
     },
     questionAnswer: {
-        type: String,
+        type: [String],
         required: true,
     },
     questionMarks: {
