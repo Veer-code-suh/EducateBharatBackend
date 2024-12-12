@@ -3,18 +3,15 @@ const { Schema } = mongoose;
 
 const questionSchema = new Schema({
     questionName: {
-        type: String,
-        required: true,
+        type: String
     },
     questionOrder: {
         type: Number,
-        required: true,
     },
     questionType: {
         type: String,
-        required: true,
         enum: ["MCQ", "Short Answer", "MoreThanOne"], // Restrict to these values
-        default:"MCQ"
+        default: "MCQ"
     },
     quizType: {
         type: String,
@@ -27,23 +24,23 @@ const questionSchema = new Schema({
     },
     questionOptions: {
         type: [String],
-        required: function () { return this.questionType === 'MCQ'; }, // Only required for MCQ type questions
+        default: ['A', 'B', 'C', 'D']
     },
     questionAnswer: {
         type: [String],
-        required: true,
     },
     questionMarks: {
         type: Number,
-        required: true,
+        default: 4,
     },
     questionNegativeMarks: {
         type: Number,
-        default: 0,
+        default: () => {
+            return this.questionType === 'Short Answer' ? 0 : -1;
+        }
     },
     questionSubject: {
         type: String,
-        required: true,
     },
     questionPdf: {
         type: String,

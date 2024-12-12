@@ -10,16 +10,20 @@ async function updateQuestionOptions() {
     await mongoose.connect(process.env.MONGO_URL, { useNewUrlParser: true, useUnifiedTopology: true });
     console.log("Connected to database");
 
-    // Find and update MCQs with specific questionOptions
+    // Find and update MCQ and Short Answer questions with specific questionOptions
     const result = await Question.updateMany(
-      { 
-        quizType:"fullquiz"
+      {
+        $or: [
+          { questionType: "MCQ" },
+          { questionType: "MoreThanOne" }
+        ]
       },
-      { 
-        $set: { quizType: "course" }
+      {
+        $set: { questionOptions: ['A', 'B', 'C', 'D'] }
       }
     );
-    console.log(`${result.modifiedCount} MCQ questions updated.`);
+
+    console.log(`${result.modifiedCount} questions updated.`);
 
     await mongoose.disconnect();
     console.log("Database connection closed.");

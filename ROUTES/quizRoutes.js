@@ -375,8 +375,8 @@ app.post('/updateQuizById', async (req, res) => {
                 if (quizIndex !== -1) {
                     // Update the specific quiz in the course array
                     chapter.chapterQuizzes[quizIndex] = {
-                        chapterQuizName: updatedQuiz.chapterQuizName, 
-                        _id: updatedQuiz._id, 
+                        chapterQuizName: updatedQuiz.chapterQuizName,
+                        _id: updatedQuiz._id,
                         access: updatedQuiz.access
                     };
                     await chapter.save();
@@ -395,8 +395,8 @@ app.post('/updateQuizById', async (req, res) => {
                 if (quizIndex !== -1) {
                     // Update the specific quiz in the course array
                     subject.subjectQuizzes[quizIndex] = {
-                        subjectQuizName: updatedQuiz.subjectQuizName, 
-                        _id: updatedQuiz._id, 
+                        subjectQuizName: updatedQuiz.subjectQuizName,
+                        _id: updatedQuiz._id,
                         access: updatedQuiz.access
                     };
                     await subject.save();
@@ -721,5 +721,77 @@ app.post('/updateTimeLimit', async (req, res) => {
         );
     }
 })
+
+
+app.post('/mapAnswers', async (req, res) => {
+    const { quizId, quizType, answersArray } = req.body;
+    console.log({ quizId, quizType, answersArray });
+
+    try {
+        // Validate input
+        if (!quizId || !quizType || !answersArray) {
+            return res.status(400).json({ error: 'Please provide quizId, quizType, and answerString' });
+        }
+
+        // Retrieve the quiz based on quizId and quizType
+        let quiz;
+        if (quizType === 'chapter') {
+            quiz = await ChapterQuiz.findById(quizId).populate('chapterQuizQNA');
+        } else if (quizType === 'subject') {
+            quiz = await SubjectQuiz.findById(quizId).populate('subjectQuizQNA');
+        } else if (quizType === 'course') {
+            quiz = await CourseQuiz.findById(quizId).populate('courseQuizQNA');
+        } else {
+            return res.status(400).json({ error: 'Invalid quiz type' });
+        }
+
+        if (!quiz) {
+            return res.status(404).json({ error: 'Quiz not found' });
+        }
+
+
+        const questionIds = quiz[`${quizType}QuizQNA`].map(q => q._id);
+
+        if (answersArray.length !== questionIds.length) {
+            return res.status(400).json({
+                error: `Mismatch: ${answersArray.length} answers provided for ${questionIds.length} questions.`
+            });
+        }
+
+        // Map answers to questions
+        const results = [];
+        for (let i = 0; i < questionIds.length; i++) {
+            const questionId = questionIds[i];
+            const rawAnswer = answersArray[i];
+
+
+            // Handle single answers
+            questionAnswer = rawAnswer;
+            console.log(questionAnswer)
+
+            // Update the question's answer
+            const updatedQuestion = await Question.findByIdAndUpdate(
+                questionId,
+                { questionAnswer },
+                { new: true }
+            );
+
+            results.push({
+                questionId,
+                status: 'updated',
+                updatedAnswer: questionAnswer,
+            });
+        }
+
+        // Send response
+        res.status(200).json({
+            message: 'Answers mapped and questions updated successfully',
+            results,
+        });
+    } catch (error) {
+        console.error('Error:', error);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+});
 
 module.exports = app;
