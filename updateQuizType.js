@@ -1,35 +1,29 @@
 const mongoose = require("mongoose");
 require("dotenv").config();
 
-// Import the Question schema
-require("./MODELS/Quiz/QuestionSchema");
-const Question = mongoose.model("Question");
+// Import the User schema
+require("./MODELS/UserSchema");
+const User = mongoose.model("User");
 
-async function updateQuestionOptions() {
+async function clearCoursePurchased() {
   try {
+    // Connect to MongoDB
     await mongoose.connect(process.env.MONGO_URL, { useNewUrlParser: true, useUnifiedTopology: true });
     console.log("Connected to database");
 
-    // Find and update MCQ and Short Answer questions with specific questionOptions
-    const result = await Question.updateMany(
-      {
-        $or: [
-          { questionType: "MCQ" },
-          { questionType: "MoreThanOne" }
-        ]
-      },
-      {
-        $set: { questionOptions: ['A', 'B', 'C', 'D'] }
-      }
-    );
+    // Update all users to set coursePurchased as an empty array
+    const result = await User.updateMany({}, { $set: { coursePurchased: [] } });
+    console.log(`${result.modifiedCount} users updated with an empty coursePurchased array.`);
 
-    console.log(`${result.modifiedCount} questions updated.`);
-
+    // Disconnect from MongoDB
     await mongoose.disconnect();
     console.log("Database connection closed.");
   } catch (error) {
     console.error("Error occurred:", error);
+    // Ensure the database connection is closed in case of error
+    await mongoose.disconnect();
+    console.log("Database connection closed due to an error.");
   }
 }
 
-updateQuestionOptions();
+clearCoursePurchased();

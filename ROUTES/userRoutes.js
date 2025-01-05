@@ -156,6 +156,56 @@ app.get('/getuserdatafromtoken', async (req, res) => {
         res.status(500).json({ error: "Internal server error" });
     }
 });
+app.post('/checkCourseOwnership', (req, res) => {
+    try {
+        const token = req.headers.authorization.split(" ")[1];
+        const data = jwt.verify(token, process.env.JWT_SECRET);
+        const { _id } = data;
+        const { courseId } = req.body;
+
+        if (!courseId) {
+            return res.status(400).json({ error: "Course ID is required" });
+        }
+
+        User.findOne({ _id: _id })
+            .then(async (user) => {
+                if (!user) {
+                    return res.status(404).json({ error: "User not found" });
+                }
+
+                let ownsCourse = false;
+
+                for (const purchasedToken of user.coursePurchased) {
+                    try {
+                        // Decode the purchased token
+                        const decoded = jwt.verify(purchasedToken, process.env.JWT_SECRET);
+
+                        // Check if the courseId matches
+                        if (decoded.courseId === courseId) {
+                            ownsCourse = true;
+                            break; // No need to check further tokens
+                        }
+                    } catch (err) {
+                        console.log("Error decoding token:", err.message);
+                        // Continue checking other tokens
+                    }
+                }
+
+                if (ownsCourse) {
+                    res.status(200).json({ message: "Course ownership confirmed" });
+                } else {
+                    res.status(404).json({ error: "Course not owned" });
+                }
+            })
+            .catch((err) => {
+                console.error("Error fetching user:", err.message);
+                res.status(500).json({ error: "Server error" });
+            });
+    } catch (err) {
+        console.error("Invalid token:", err.message);
+        res.status(401).json({ error: "Unauthorized" });
+    }
+});
 
 app.get('/getuserquizzes', async (req, res) => {
     const token = req.headers.authorization?.split(" ")[1];
@@ -409,7 +459,7 @@ const isValidObjectId = (id) => {
 // BUY COURSE
 app.post('/buyCourse', (req, res) => {
     const token = req.headers.authorization.split(" ")[1];
-    const { courseId, amount, currency, razorpay_payment_id } = req.body;
+    const { courseId, amount, currency, razorpay_payment_id, accessYears } = req.body;
     if (!courseId || !token) {
         return res.status(422).json({ error: "Please add all the fields" });
     }
@@ -420,7 +470,24 @@ app.post('/buyCourse', (req, res) => {
             .then(async savedUser => {
                 if (savedUser) {
                     // console.log(savedUser);
-                    savedUser.coursePurchased.push(courseId);
+
+                    const payload = {
+                        userId: _id,
+                        courseId: courseId,
+                    };
+                    const secret = process.env.JWT_SECRET;
+                    let token = jwt.sign(payload, secret, { expiresIn: '1y' });
+                    if (accessYears == 2) {
+                        token = jwt.sign(payload, secret, { expiresIn: '2y' });
+                    }
+                    else if (accessYears == 3) {
+                        token = jwt.sign(payload, secret, { expiresIn: '3y' });
+                    }
+                    else {
+                        token = jwt.sign(payload, secret, { expiresIn: '4y' });
+                    }
+
+                    savedUser.coursePurchased.push(token);
                     savedUser.save()
                         .then(user => {
                             const purchase = new Purchase({
@@ -454,44 +521,56 @@ app.post('/buyCourse', (req, res) => {
                 }
             })
     }
-
 });
-app.post('/buyCourseWhatsapp', (req, res) => {
-    const { userId, courseId, transactionId, amount, currency } = req.body;
 
-    User.findOne({ _id: userId })
-        .then(async savedUser => {
-            if (savedUser) {
-                // console.log(savedUser);
-                savedUser.coursePurchased.push(courseId);
-                savedUser.save()
-                    .then(async user => {
+app.post('/giveCourseAccess', (req, res) => {
+    const { courseId, accessYears, userId } = req.body;
+    if (!courseId) {
+        return res.status(422).json({ error: "Please add all the fields" });
+    }
+    else {
+   
+       
+        User.findOne({ _id: userId })
+            .then(async savedUser => {
+                if (savedUser) {
+                    // console.log(savedUser);
 
-                        const purchase = new Purchase({
-                            item: {
-                                type: 'course',
-                                courseId: courseId
-                            },
-                            userId: user._id,
-                            amount: amount,
-                            currency: currency,
-                            upi_transaction_id: transactionId,
-                        });
+                    const payload = {
+                        userId: userId,
+                        courseId: courseId,
+                    };
+                    const secret = process.env.JWT_SECRET;
+                    let token = jwt.sign(payload, secret, { expiresIn: '1y' });
+                    if (accessYears == 2) {
+                        token = jwt.sign(payload, secret, { expiresIn: '2y' });
+                    }
+                    else if (accessYears == 3) {
+                        token = jwt.sign(payload, secret, { expiresIn: '3y' });
+                    }
+                    else {
+                        token = jwt.sign(payload, secret, { expiresIn: '4y' });
+                    }
 
-                        await purchase.save();
-                        res.json({ message: "Course Bought Successfully" });
-                    })
-                    .catch(err => {
-                        // console.log(err);
-                        return res.status(422).json({ error: "Server Error" });
+                    savedUser.coursePurchased.push(token);
+                    savedUser.save()
+                        .then(user => {
 
-                    })
-            }
-            else {
-                return res.status(422).json({ error: "Invalid Credentials" });
-            }
-        })
-});
+                            res.json({ message: "Course Bought Successfully" });
+
+                        })
+                        .catch(err => {
+                            // console.log(err);
+                            return res.status(422).json({ error: "Server Error" });
+
+                        })
+                }
+                else {
+                    return res.status(422).json({ error: "Invalid Credentials" });
+                }
+            })
+    }
+})
 
 // add to cart
 app.post('/addToCart', (req, res) => {
@@ -633,7 +712,7 @@ app.delete('/clearCart', (req, res) => {
 });
 
 app.post('/buyProducts', (req, res) => {
-    const { cartdata, cartTotal, paymentMethod, paymentId, shipping,  address } = req.body;
+    const { cartdata, cartTotal, paymentMethod, paymentId, shipping, address } = req.body;
     console.log(req.body);
 
     if (!cartdata || !cartTotal || !paymentMethod || !shipping || !address || !paymentId) {
@@ -863,40 +942,48 @@ app.post('/cancelOrder', (req, res) => {
 
 
 app.get('/getMyCourses', (req, res) => {
-    const token = req.headers.authorization.split(" ")[1];
-    const data = jwt.verify(token, process.env.JWT_SECRET);
-    const { _id } = data;
+    try {
+        const token = req.headers.authorization.split(" ")[1];
+        const data = jwt.verify(token, process.env.JWT_SECRET);
+        const { _id } = data;
 
-    User.findOne({ _id: _id })
-        .then(async user => {
-            let courses = [];
-            for (const courseId in user.coursePurchased) {
-                if (user.coursePurchased.hasOwnProperty(courseId)) {
+        User.findOne({ _id: _id })
+            .then(async (user) => {
+                if (!user) {
+                    return res.status(404).json({ error: "User not found" });
+                }
+
+                let courses = [];
+                for (const token of user.coursePurchased) {
                     try {
-                        const course = await Course.findOne({ _id: user.coursePurchased[courseId] });
-                        courses.push(course);
+                        // Decode the stored token
+                        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+                        const { courseId } = decoded;
+
+                        // Fetch course data from the database
+                        const course = await Course.findOne({ _id: courseId });
+                        if (course) {
+                            courses.push(course);
+                        }
                     } catch (err) {
-                        console.log('err getting course data from token ', err);
-                        res.json({
-                            error: "Server Error"
-                        });
+                        console.log("Error processing course token:", err.message);
+                        // Continue processing other tokens even if one fails
                     }
                 }
-            }
-            // console.log(courses);
 
-            res.status(200).json({
-                courses: courses
+                res.status(200).json({
+                    courses: courses,
+                });
+            })
+            .catch((err) => {
+                console.error("Error fetching user:", err.message);
+                res.status(500).json({ error: "Server error" });
             });
-
-        })
-        .catch(err => {
-            res.json({
-                error: "User Not Found"
-            });
-        })
-})
-
+    } catch (err) {
+        console.error("Invalid token:", err.message);
+        res.status(401).json({ error: "Unauthorized" });
+    }
+});
 
 
 // get 10 oldest undelivered orders and not cancelled of all users

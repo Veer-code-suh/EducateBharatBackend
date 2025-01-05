@@ -639,7 +639,8 @@ app.post('/submitQuiz', async (req, res) => {
 
 app.post('/addAfterSubmissionPdfToQuiz', async (req, res) => {
     const { quizId, quizType, pdfLink } = req.body;
-
+    // console.log({ quizId, quizType, pdfLink })
+    // return res.json({ error: "Error in adding pdf to quiz" }).status(500);
     if (quizType == "chapter") {
         const quiz = await ChapterQuiz.findById(quizId);
         quiz.afterSubmissionPdf = pdfLink;
